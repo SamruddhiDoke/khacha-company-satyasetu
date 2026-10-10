@@ -83,3 +83,50 @@ def test_overall():
 def test_overall_strength_is_weakest_link():
     assert overall_strength(["strong", "weak"]) == "weak"
     assert overall_strength([]) == "none"
+
+
+# --- Regression: live eval item t03 ("The Reserve Bank of India was established in 1935.") ---
+# Evidence as observed live on 2026-10-10: rbi.org.in and two university lecture-note PDFs support 1935;
+# Wikipedia's article both says "established in 1934" (refutes) and lists "Established 1 April 1935" (supports).
+from app.pipeline.sources import classify  # noqa: E402
+from app.pipeline.verdicts import counted_mask  # noqa: E402
+
+RBI_T03 = [
+    ("supports", "https://www.jnpg.ac.in/Upload/EContent/Company_Account/RESERVE%20BANK.pdf"),
+    ("supports", "https://www.lkouniv.ac.in/site/writereaddata/siteContent/202004051341.pdf"),
+    ("supports", "https://rbi.org.in/Scripts/AboutUsDisplay.aspx"),
+    ("refutes", "https://en.wikipedia.org/wiki/Reserve_Bank_of_India"),
+    ("supports", "https://en.wikipedia.org/wiki/Reserve_Bank_of_India"),
+]
+
+
+def _ev(items):
+    from app.pipeline.sources import domain_of
+    return [E(st, True, classify(u), domain_of(u)) for st, u in items]
+
+
+def test_rbi_1935_self_contradictory_source_is_not_a_conflict():
+    ev = _ev(RBI_T03)
+    d = decide_claim(True, ev)
+    assert d.verdict == "verified"  # was "conflicting" before the fix
+    assert d.weights["self_contradictory_domains"] == ["en.wikipedia.org"]
+    assert d.weights["refutes"] == 0 and d.weights["supports"] == 5  # rbi.org.in 3 + two academic "other" 1+1
+    mask = counted_mask(ev)
+    assert [m[0] for m in mask] == [True, True, True, False, False]
+    assert mask[3][1] == mask[4][1] == "Excluded: this source contradicts itself on this claim"
+
+
+def test_self_contradiction_majority_side_is_kept():
+    # A fact-check page quotes the viral claim once (labelled supports) but refutes it twice: keep the refutation.
+    ev = [E("supports", True, "fact_check", "boomlive.in"), E("refutes", True, "fact_check", "boomlive.in"),
+          E("refutes", True, "fact_check", "boomlive.in")]
+    d = decide_claim(True, ev)
+    assert d.verdict == "false" and d.weights["supports"] == 0
+    assert counted_mask(ev)[0] == (False, "Excluded: minority stance within the same source")
+
+
+def test_contradiction_resolution_does_not_touch_partial_or_other_domains():
+    ev = [E("supports", True, "news", "a.com"), E("refutes", True, "news", "b.com"),
+          E("partially_supports", True, "news", "a.com")]
+    d = decide_claim(True, ev)
+    assert d.verdict == "conflicting" and d.weights["self_contradictory_domains"] == []

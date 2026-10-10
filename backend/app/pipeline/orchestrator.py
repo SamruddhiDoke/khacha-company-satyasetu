@@ -23,7 +23,7 @@ from app.pipeline.explain import ClaimForExplanation, explain
 from app.pipeline.llm_io import SYSTEM_EVALUATE, SYSTEM_EXTRACT, ClaimExtraction, EvidenceEvaluation, wrap
 from app.pipeline.retrieval import RetrievedSource, extract_page, fetch_all, search_claims, select_candidates
 from app.pipeline.text import detect_script_language, extract_urls, normalize_for_match, quote_in_text, select_passages, tokens
-from app.pipeline.verdicts import EvidenceInput, decide_claim, decide_overall, overall_strength
+from app.pipeline.verdicts import EvidenceInput, counted_mask, decide_claim, decide_overall, overall_strength
 from app.providers import registry
 from app.providers.errors import ProviderError
 from app.providers.llm import CallStats
@@ -270,6 +270,11 @@ async def _complete(job_id, claims, validated, what_changes, stats, language, ll
             ev = [EvidenceInput(e["stance"], e["valid"], e["src"].tier, e["src"].domain, e["temporal"],
                                 e["missing_context"]) for e in validated.get(i, [])]
             decisions.append(decide_claim(c.checkable, ev))
+            # Record exactly what the rules counted, so the report never shows excluded quotes as evidence.
+            for e, (counted, reason) in zip(validated.get(i, []), counted_mask(ev)):
+                e["counted"] = counted and c.checkable
+                if reason:
+                    e["rejected_reason"] = reason
         overall = decide_overall([d.verdict for d in decisions])
         strength = overall_strength([d.strength for d, c in zip(decisions, claims) if c.checkable])
         st.detail = overall
@@ -278,15 +283,14 @@ async def _complete(job_id, claims, validated, what_changes, stats, language, ll
     labels: dict[str, str] = {}
     for i in range(len(claims)):
         for e in validated.get(i, []):
-            if e["valid"] and e["stance"] != "not_relevant" and e["src"].url not in labels:
+            if e["counted"] and e["src"].url not in labels:
                 labels[e["src"].url] = f"S{len(labels) + 1}"
 
     async with Stage(job_id, "preparing_explanation") as st:
         cfe = []
         for i, (c, d) in enumerate(zip(claims, decisions)):
-            quotes = [(labels[e["src"].url], e["stance"], e["quote"]) for e in validated.get(i, [])
-                      if e["valid"] and e["stance"] != "not_relevant"]
-            mc = next((e["missing_context"] for e in validated.get(i, []) if e["valid"] and e["missing_context"]), None)
+            quotes = [(labels[e["src"].url], e["stance"], e["quote"]) for e in validated.get(i, []) if e["counted"]]
+            mc = next((e["missing_context"] for e in validated.get(i, []) if e["counted"] and e["missing_context"]), None)
             cfe.append(ClaimForExplanation(i, c.normalized_claim, d.verdict,
                                            d.reason if c.checkable else (c.reason_not_checkable or d.reason),
                                            quotes, mc, what_changes.get(i)))
@@ -335,7 +339,7 @@ async def _complete(job_id, claims, validated, what_changes, stats, language, ll
                                 quote=e["quote"], stance=e["stance"], rationale=e["rationale"], quote_valid=e["valid"],
                                 rejected_reason=e["rejected_reason"], temporal_issue=e["temporal"],
                                 missing_context=e["missing_context"],
-                                counted=e["valid"] and e["stance"] != "not_relevant"))
+                                counted=e["counted"]))
         job.status = "completed"
         job.overall_verdict, job.evidence_strength = overall, strength
         job.explanation, job.content_meta = explanation, content_meta

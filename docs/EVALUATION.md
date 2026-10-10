@@ -2,11 +2,29 @@
 
 Status as of 2026-10-10. Nothing below claims verification quality that has not been measured.
 
-## Live-provider validation: NOT YET RUN
-No Gemini or Tavily key has been configured yet, so **no live verification has been executed**. Consequently:
-- verdict accuracy, citation correctness against real pages, API latency and live failure rates are **unknown**;
-- AT-03, AT-04, AT-05 and AT-11 have only been exercised with mocked providers;
-- the 24-item labelled set in `eval/dataset.jsonl` has **not** been run.
+## Live-provider validation: run 1 (2026-10-10), PARTIAL
+Report: `eval/results/20261010-153644.json` (kept locally, not committed). Real Gemini + Tavily, through the public API.
+
+| Metric | Measured |
+|---|---|
+| Completed | 20 / 24 (all English). 4 failed: hi01, hi02, mr01, mr02 - `rate_limited` by SatyaSetu's own 8/min limiter (cause and fix below) |
+| Verdict accuracy (accepted labels) | 19 / 20. Miss: t03 "RBI established in 1935" -> conflicting (cause and fix below) |
+| False positives / false negatives | 0 / 0 on the 20 completed |
+| Verified/false verdicts without counted citations | 0 |
+| Counted quotations | 94; 94 valid per server; 94 re-confirmed against the page text stored in Postgres |
+| Quotes found on the live page when re-fetched afterwards | 54 / 94 (33 re-fetches blocked by HTTP 403, 5 network errors, 2 loaded but quote not found - not yet investigated) |
+| Retrieval | 58 direct, 36 search-provider extract (site blocked direct fetch) |
+| Latency | median 42.7 s, max 99.3 s (i02, slowed by the rate limiter) |
+| Models | t01-t04 `gemini-3.8-flash`; f01 onwards `gemini-3.5-flash-lite` (primary free daily quota exhausted after ~20 requests) |
+
+**Not measured:** Hindi and Marathi (all 4 failed), correction drafting with live models, quality of `gemini-3.8-flash` beyond 4 items. 20 items of well-known claims is far too small for statistical claims.
+
+**Separate first live check (via the real UI):** "The Statue of Unity in Gujarat, which depicts Sardar Vallabhbhai Patel, is 182 metres tall." -> verified, strong, 32 s, 3 Gemini calls (5,903 tokens), 1 Tavily credit, 10 counted quotes from Wikipedia, Britannica, gujarattourism.com and theunitytourism.com. The very first attempt failed with `timeout`: `gemini-3.8-flash` at its default thinking level took ~75 s per call; fixed by `GEMINI_THINKING_LEVEL=low` (~3 s).
+
+### Fixes after run 1 (regression-tested, not yet re-validated live)
+1. **Exhausted model kept being retried.** Every call tried the quota-exhausted primary first (50 wasted requests, each using a rate-limit slot), which tripped the local 8/min limiter. Now an exhausted model is skipped until Google's reset (midnight Pacific, per Google's docs; `GEMINI_QUOTA_RESET_TZ`), the refused request's slot is released, and SatyaSetu's own daily budget no longer marks a model exhausted.
+2. **Self-contradictory source counted on both sides (t03).** Wikipedia's RBI article says "established in 1934" in one sentence and "1 April 1935" in its infobox; it was counted as both support and refutation, producing *conflicting*. Now a domain with quotes on both sides keeps only its majority side; a tie drops it from both. Excluded quotes are stored with the reason and shown as "not counted".
+3. **Academic domains treated as official.** `.ac.in`/`.edu` lecture-note PDFs were weighted as official. They are now "other" unless explicitly listed (e.g. `nta.ac.in`).
 
 Run it once keys are set (it uses roughly 70-100 Gemini calls and 40-80 Tavily credits for the full set, so raise `TAVILY_MAX_SEARCHES_PER_DAY` first or run in parts):
 ```powershell

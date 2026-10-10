@@ -54,3 +54,11 @@ def test_extract_page_html():
     page = extract_page(FetchResult("https://x.gov.in", "https://x.gov.in", 200, "text/html", html.encode()))
     assert "deadline was not extended" in page.text
     assert "menu" not in page.text
+
+
+def test_academic_domains_are_not_official_by_suffix():
+    assert classify("https://www.lkouniv.ac.in/site/writereaddata/siteContent/notes.pdf") == "other"
+    assert classify("https://www.jnpg.ac.in/Upload/EContent/RBI.pdf") == "other"
+    assert classify("https://ocw.mit.edu/courses/x") == "other"
+    assert classify("https://nta.ac.in/notice") == "official"  # explicitly listed institution
+    assert classify("https://www.mohfw.gov.in/") == "official"

@@ -20,11 +20,16 @@ class Settings(BaseSettings):
     # --- LLM provider (Gemini API) ---
     gemini_api_key: SecretStr | None = None
     gemini_model: str = "gemini-3.8-flash"
-    # Used only if the primary model is unavailable to this key or its daily quota is exhausted.
+    # Used only if the primary model is unavailable to this key, times out, or its daily quota is exhausted.
     gemini_fallback_model: str = "gemini-3.5-flash-lite"
     gemini_timeout_s: float = 60.0
+    # Gemini 3 models think at "medium" by default; measured at ~75 s per call on gemini-3.8-flash
+    # vs ~3 s at "low". Applied only to gemini-3* models (allowed: low|medium|high; empty = model default).
+    gemini_thinking_level: str = "low"
     gemini_max_requests_per_minute: int = 8
     gemini_max_requests_per_day: int = 200
+    # Google: "Requests per day (RPD) quotas reset at midnight Pacific time."
+    gemini_quota_reset_tz: str = "America/Los_Angeles"
 
     # --- Search provider (Tavily) ---
     tavily_api_key: SecretStr | None = None
@@ -43,6 +48,7 @@ class Settings(BaseSettings):
     max_total_searches_per_check: int = 6
     check_timeout_s: float = 180.0
     fetch_timeout_s: float = 10.0
+    fetch_contact: str = ""  # e.g. a URL or email; sent in the User-Agent of page fetches if set
     fetch_max_bytes: int = 3_000_000
     max_concurrent_checks: int = 3
     verifications_per_minute_per_session: int = 6

@@ -17,6 +17,10 @@ class QuotaExhausted(ProviderError):
     code = "quota_exhausted"
 
 
+class LocalBudgetExhausted(QuotaExhausted):
+    """SatyaSetu's own configured daily budget is used up (provider-wide, not a single model's quota)."""
+
+
 class RateLimited(ProviderError):
     code = "rate_limited"
 

@@ -11,7 +11,7 @@ from sqlalchemy.dialects.postgresql import insert
 
 from app.db import SessionLocal
 from app.models import ProviderUsage
-from app.providers.errors import QuotaExhausted, RateLimited
+from app.providers.errors import LocalBudgetExhausted, RateLimited
 
 
 def today() -> date:
@@ -80,10 +80,15 @@ class MinuteLimiter:
                 self._times.popleft()
             self._times.append(time.monotonic())
 
+    def release(self) -> None:
+        """Give back the most recent slot (used when the provider refused a request outright)."""
+        if self._times:
+            self._times.pop()
+
 
 async def ensure_daily_budget(provider: str, limit: int) -> None:
     if await get_count(provider) >= limit:
-        raise QuotaExhausted(
+        raise LocalBudgetExhausted(
             f"{provider}: the configured daily request budget ({limit}) is used up. It resets at 00:00 UTC.",
             provider=provider,
         )

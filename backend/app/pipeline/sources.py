@@ -11,9 +11,10 @@ from urllib.parse import urlsplit
 TIER_WEIGHT = {"official": 3, "fact_check": 3, "news": 2, "reference": 2, "other": 1}
 
 OFFICIAL_SUFFIXES = (
-    ".gov.in", ".nic.in", ".gov", ".gov.uk", ".gov.au", ".gc.ca", ".europa.eu", ".mil", ".ac.in", ".edu",
-    ".res.in", ".int",
+    ".gov.in", ".nic.in", ".gov", ".gov.uk", ".gov.au", ".gc.ca", ".europa.eu", ".mil", ".res.in", ".int",
 )
+# Academic domains (.ac.in, .edu) are NOT official by suffix: they host lecture notes, student pages and
+# course PDFs. They count as "other" unless an institution is explicitly listed (e.g. nta.ac.in).
 OFFICIAL_DOMAINS = {
     "who.int", "un.org", "unicef.org", "worldbank.org", "imf.org", "rbi.org.in", "sebi.gov.in", "eci.gov.in",
     "pib.gov.in", "india.gov.in", "mygov.in", "uidai.gov.in", "npci.org.in", "icmr.gov.in", "mohfw.gov.in",

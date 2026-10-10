@@ -7,6 +7,8 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from typing import Any, Protocol, TypeVar
 
 import httpx
@@ -17,6 +19,7 @@ from app.core import usage
 from app.providers.errors import (
     ContentBlocked,
     InvalidModelOutput,
+    LocalBudgetExhausted,
     ProviderError,
     ProviderNotConfigured,
     ProviderTimeout,
@@ -104,6 +107,21 @@ class GeminiProvider:
         self.models = [m for m in (settings.gemini_model, settings.gemini_fallback_model) if m]
         self._client = client or httpx.AsyncClient(timeout=settings.gemini_timeout_s)
         self._limiter = usage.MinuteLimiter(settings.gemini_max_requests_per_minute, "gemini")
+        # model -> UTC instant when its daily quota resets. Exhausted models are skipped until then, so a
+        # fallback call does not first spend a request and a rate-limit slot on a model that will refuse it.
+        self._exhausted_until: dict[str, datetime] = {}
+
+    def next_quota_reset(self, now: datetime | None = None) -> datetime:
+        """Gemini RPD quotas reset at midnight Pacific time (configurable via GEMINI_QUOTA_RESET_TZ)."""
+        now = now or datetime.now(timezone.utc)
+        tz = ZoneInfo(self.settings.gemini_quota_reset_tz)
+        local = now.astimezone(tz)
+        midnight = datetime(local.year, local.month, local.day, tzinfo=tz) + timedelta(days=1)
+        return midnight.astimezone(timezone.utc)
+
+    def available_models(self, now: datetime | None = None) -> list[str]:
+        now = now or datetime.now(timezone.utc)
+        return [m for m in self.models if self._exhausted_until.get(m, now) <= now]
 
     async def check_model(self, model: str) -> tuple[bool, str]:
         """models.get is a metadata call - it consumes no generation quota."""
@@ -118,13 +136,25 @@ class GeminiProvider:
     async def generate_json(self, *, system: str, prompt: str, out: type[T], stats: CallStats) -> T:
         schema = to_gemini_schema(out)
         last_err: ProviderError | None = None
-        for model in self.models:
+        models = self.available_models()
+        if not models:
+            reset = min(self._exhausted_until.values())
+            raise QuotaExhausted(
+                f"Gemini free-tier daily quota is exhausted for all configured models until "
+                f"{reset:%Y-%m-%d %H:%M} UTC.", provider="gemini")
+        for model in models:
             try:
                 return await self._generate_with_model(model, system, prompt, out, schema, stats)
-            except (QuotaExhausted, _ModelUnavailable) as e:
+            except LocalBudgetExhausted:
+                raise  # our own provider-wide budget: no model should be marked exhausted
+            except QuotaExhausted as e:
+                self._exhausted_until[model] = self.next_quota_reset()
+                log.warning("gemini model %s daily quota exhausted; skipping it until %s UTC",
+                            model, f"{self._exhausted_until[model]:%Y-%m-%d %H:%M}")
+                last_err = e
+            except (_ModelUnavailable, ProviderTimeout) as e:
                 log.warning("gemini model %s unavailable (%s); trying fallback if configured", model, e)
-                last_err = e if isinstance(e, ProviderError) else ProviderError(str(e), provider="gemini")
-                continue
+                last_err = e
         assert last_err is not None
         if isinstance(last_err, _ModelUnavailable):
             raise ProviderError(f"No configured Gemini model is available to this API key: {last_err}", provider="gemini")
@@ -158,10 +188,13 @@ class GeminiProvider:
                 ]
 
     async def _post(self, model, system, contents, schema, stats: CallStats, allow_retry: bool) -> dict:
+        gen_config: dict[str, Any] = {"responseMimeType": "application/json", "responseSchema": schema}
+        if model.startswith("gemini-3") and self.settings.gemini_thinking_level:
+            gen_config["thinkingConfig"] = {"thinkingLevel": self.settings.gemini_thinking_level}
         body = {
             "systemInstruction": {"parts": [{"text": system}]},
             "contents": contents,
-            "generationConfig": {"responseMimeType": "application/json", "responseSchema": schema},
+            "generationConfig": gen_config,
         }
         attempts = 2 if allow_retry else 1
         for attempt in range(attempts):
@@ -175,8 +208,6 @@ class GeminiProvider:
                 )
             except httpx.TimeoutException as e:
                 await usage.record("gemini", errors=1)
-                if attempt + 1 < attempts:
-                    continue
                 raise ProviderTimeout("The language model did not respond in time.", provider="gemini", retryable=True) from e
             except httpx.HTTPError as e:
                 await usage.record("gemini", errors=1)
@@ -194,6 +225,7 @@ class GeminiProvider:
             msg = _error_message(r)
             if r.status_code == 429:
                 if _is_daily_quota(r):
+                    self._limiter.release()  # refused without doing work: don't let it crowd out the fallback
                     raise QuotaExhausted(f"Gemini free-tier daily quota exhausted for {model}.", provider="gemini")
                 delay = _retry_delay(r)
                 if attempt + 1 < attempts and delay <= 20:

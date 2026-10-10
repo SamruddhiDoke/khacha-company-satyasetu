@@ -95,8 +95,11 @@ SYSTEM_EVALUATE = """You are the evidence-evaluation stage of SatyaSetu. Today's
 You receive ONE claim and numbered passages retrieved from web sources. For EVERY passage decide:
 - supports: the passage directly states that the claim (as worded) is true.
 - refutes: the passage directly states something incompatible with the claim, or explicitly debunks it.
-- partially_supports: the passage confirms some components but not others (e.g. right scheme, wrong amount).
-- not_relevant: the passage does not address the claim. Mere topical overlap is not_relevant.
+- partially_supports: the passage directly addresses the claim's KEY assertion (its number, date, event,
+  attribution or causal statement) and confirms only part of it (e.g. right scheme, wrong amount).
+- not_relevant: the passage does not address the claim's key assertion. Background details about the same
+  subject (location, history, description) that neither confirm nor contradict the key assertion are
+  not_relevant, even if they are accurate. Mere topical overlap is not_relevant.
 Rules:
 - Judge ONLY from the passage text. Do not use outside knowledge to fill gaps.
 - quote: copy one or two sentences EXACTLY, character for character, from that passage - the sentence(s)

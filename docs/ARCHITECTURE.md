@@ -32,7 +32,7 @@ Browser ──► nginx :8080 ──► /            React SPA (static)
 Everything is persisted in one transaction at the end. A provider failure ends the job as `failed` with a code (`provider_not_configured`, `quota_exhausted`, `rate_limited`, `timeout`, `invalid_model_output`, `content_blocked`, `provider_error`, `interrupted`, `internal`). There is no code path that produces a verdict without counted evidence.
 
 ### Verdict rules (`backend/app/pipeline/verdicts.py`)
-Each domain counts once per stance with its tier weight (official 3, fact-checker 3, news 2, reference 2, other 1). A side is *credible* at weight ≥ 2.
+A domain whose verified quotes fall on both the supporting and refuting side keeps only its majority side; on a tie it is dropped from both (self-contradictory source). Each domain counts once per stance with its tier weight (official 3, fact-checker 3, news 2, reference 2, other 1). A side is *credible* at weight ≥ 2.
 
 | Claim verdict | Rule |
 |---|---|

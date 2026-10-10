@@ -19,7 +19,12 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 
-USER_AGENT = "SatyaSetu/0.1 (+local fact-checking assistant; respects robots via provider search)"
+def user_agent() -> str:
+    # Some sites (e.g. Wikipedia) reject automated clients without contact details. FETCH_CONTACT is
+    # optional and empty by default so no personal information is sent unless the user opts in.
+    from app.config import get_settings
+    contact = get_settings().fetch_contact.strip()
+    return f"SatyaSetu/0.1 (local fact-checking assistant{'; ' + contact if contact else ''})"
 ALLOWED_TYPES = ("text/html", "application/xhtml+xml", "text/plain", "application/pdf")
 BLOCKED_HOSTNAMES = {"localhost", "metadata.google.internal", "metadata", "instance-data"}
 
@@ -117,7 +122,7 @@ async def _fetch(client: httpx.AsyncClient, url: str, max_bytes: int, max_redire
         parts = urlsplit(current)
         ip_netloc = f"[{ip}]" if ":" in ip else ip
         pinned = urlunsplit((scheme, ip_netloc, parts.path or "/", parts.query, ""))
-        headers = {"Host": parts.netloc.split("@")[-1], "User-Agent": USER_AGENT,
+        headers = {"Host": parts.netloc.split("@")[-1], "User-Agent": user_agent(),
                    "Accept": "text/html,application/xhtml+xml,text/plain,application/pdf;q=0.9,*/*;q=0.1",
                    "Accept-Language": "en-IN,en;q=0.9,hi;q=0.6"}
         req = client.build_request("GET", pinned, headers=headers,

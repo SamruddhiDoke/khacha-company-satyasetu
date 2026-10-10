@@ -5,6 +5,11 @@ The language model never decides a verdict. It labels individual passages
 passage verbatim. Only assessments whose quote was found in the retrieved
 source text are counted. These rules then turn counted evidence into a verdict.
 
+Self-contradictory sources: if one domain has counted quotes that both support
+and refute the claim, only its majority side is kept; on a tie the domain is
+dropped from both sides (a page that says "1934" in one sentence and "1935" in
+another cannot vouch for either). Partial support is unaffected.
+
 Weighting: each *domain* contributes at most once per stance, with the weight
 of its tier (official 3, fact_check 3, news 2, reference 2, other 1). A side
 is "credible" when its weight reaches CREDIBLE (2) - i.e. one official,
@@ -76,11 +81,52 @@ def _strength(weight: int, domains: int) -> str:
     return "moderate"
 
 
+def _resolve_self_contradictions(items: list[EvidenceInput]) -> tuple[list[EvidenceInput], list[str]]:
+    sup: dict[str, int] = {}
+    ref: dict[str, int] = {}
+    for e in items:
+        if e.stance == "supports":
+            sup[e.domain] = sup.get(e.domain, 0) + 1
+        elif e.stance == "refutes":
+            ref[e.domain] = ref.get(e.domain, 0) + 1
+    drop: dict[str, set[str]] = {}
+    tied: list[str] = []
+    for d in sup.keys() & ref.keys():
+        if sup[d] > ref[d]:
+            drop[d] = {"refutes"}
+        elif ref[d] > sup[d]:
+            drop[d] = {"supports"}
+        else:
+            drop[d] = {"supports", "refutes"}
+            tied.append(d)
+    kept = [e for e in items if e.stance not in drop.get(e.domain, ())]
+    return kept, sorted(tied)
+
+
+def counted_mask(evidence: list[EvidenceInput]) -> list[tuple[bool, str | None]]:
+    """Per item: (counted by the rules?, reason if a valid quote was excluded). Mirrors decide_claim."""
+    eligible = [e for e in evidence if e.quote_valid and e.stance in ("supports", "refutes", "partially_supports")]
+    kept, tied = _resolve_self_contradictions(eligible)
+    kept_ids = {id(e) for e in kept}
+    eligible_ids = {id(e) for e in eligible}
+    out = []
+    for e in evidence:
+        if id(e) in kept_ids:
+            out.append((True, None))
+        elif id(e) in eligible_ids:
+            out.append((False, "Excluded: this source contradicts itself on this claim" if e.domain in tied
+                        else "Excluded: minority stance within the same source"))
+        else:
+            out.append((False, None))
+    return out
+
+
 def decide_claim(checkable: bool, evidence: list[EvidenceInput]) -> ClaimDecision:
     if not checkable:
         return ClaimDecision("not_checkable", "none", "The statement is not an objectively checkable factual claim.")
 
     counted = [e for e in evidence if e.quote_valid and e.stance in ("supports", "refutes", "partially_supports")]
+    counted, contradictory = _resolve_self_contradictions(counted)
     sup = [e for e in counted if e.stance == "supports"]
     ref = [e for e in counted if e.stance == "refutes"]
     par = [e for e in counted if e.stance == "partially_supports"]
@@ -92,7 +138,8 @@ def decide_claim(checkable: bool, evidence: list[EvidenceInput]) -> ClaimDecisio
     T, t_dom = _side_weight(tmp)
     C, _ = _side_weight(ctx)
     weights = {"supports": S, "refutes": R, "partial": P, "temporal": T, "missing_context": C,
-               "counted": len(counted), "considered": len(evidence)}
+               "counted": len(counted), "considered": len(evidence),
+               "self_contradictory_domains": contradictory}
 
     if not counted:
         return ClaimDecision("insufficient_evidence", "none",

@@ -71,7 +71,8 @@ async def lifespan(app: FastAPI):
     await jobs.wait_all(timeout=5)
 
 
-app = FastAPI(title="SatyaSetu API", version="0.1.0", lifespan=lifespan,
+app = FastAPI(title="SatyaSetu API", version="0.1.0", lifespan=lifespan, openapi_url="/api/openapi.json",
+              docs_url=None, redoc_url=None,
               description="Evidence-based verification of forwarded messages.")
 app.include_router(system.router)
 app.include_router(chat.router)

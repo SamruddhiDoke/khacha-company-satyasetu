@@ -1,0 +1,24 @@
+{"id": "t01", "lang": "en", "category": "true", "text": "The Indian Constitution came into effect on 26 January 1950.", "accept": ["verified"]}
+{"id": "t02", "lang": "en", "category": "true", "text": "Chandrayaan-3's Vikram lander touched down near the Moon's south pole in August 2023.", "accept": ["verified"]}
+{"id": "t03", "lang": "en", "category": "true", "text": "The Reserve Bank of India was established in 1935.", "accept": ["verified"]}
+{"id": "t04", "lang": "en", "category": "true", "text": "UPI is operated by the National Payments Corporation of India (NPCI).", "accept": ["verified"]}
+{"id": "f01", "lang": "en", "category": "false", "text": "Drinking hot water with lemon cures cancer, doctors confirm.", "accept": ["false", "misleading"]}
+{"id": "f02", "lang": "en", "category": "false", "text": "The Taj Mahal is located in Delhi.", "accept": ["false"]}
+{"id": "f03", "lang": "en", "category": "false", "text": "5G mobile towers spread the coronavirus.", "accept": ["false"]}
+{"id": "f04", "lang": "en", "category": "false", "text": "Mount Everest is located in Bhutan.", "accept": ["false"]}
+{"id": "f05", "lang": "en", "category": "fabricated_quote", "text": "Mahatma Gandhi said: 'Be the change you wish to see in the world' in his 1915 speech in Parliament.", "accept": ["false", "misleading", "partly_true", "insufficient_evidence", "mixed"]}
+{"id": "f06", "lang": "en", "category": "manipulated_statistic", "text": "India's literacy rate according to the 2011 Census was 98 percent.", "accept": ["false"]}
+{"id": "p01", "lang": "en", "category": "partly_true", "text": "India became independent on 15 August 1947 and its first Prime Minister was Sardar Vallabhbhai Patel.", "accept": ["mixed", "partly_true"]}
+{"id": "p02", "lang": "en", "category": "missing_context", "text": "Eating carrots gives you night vision like a cat.", "accept": ["false", "misleading", "partly_true"]}
+{"id": "g01", "lang": "en", "category": "govt_scam", "text": "RBI has announced that all savings accounts not linked to PAN will be permanently closed tomorrow. Share your account number and OTP to keep it active.", "accept": ["false", "insufficient_evidence"]}
+{"id": "g02", "lang": "en", "category": "govt_public_service", "text": "Aadhaar numbers are issued by the Unique Identification Authority of India (UIDAI).", "accept": ["verified"]}
+{"id": "g03", "lang": "en", "category": "govt_public_service", "text": "The PM-KISAN scheme provides Rs 6,000 per year to eligible farmer families in three instalments.", "accept": ["verified"]}
+{"id": "h01", "lang": "en", "category": "health", "text": "Antibiotics are effective against viral infections like the common cold.", "accept": ["false"]}
+{"id": "h02", "lang": "en", "category": "health", "text": "The MMR vaccine causes autism.", "accept": ["false"]}
+{"id": "i01", "lang": "en", "category": "insufficient", "text": "The gram panchayat of Wadgaon Kh. in Satara district approved a new water tank in its meeting last Tuesday.", "accept": ["insufficient_evidence"]}
+{"id": "i02", "lang": "en", "category": "insufficient", "text": "A retired teacher in Nashik named Shubhangi Kale has grown a 9 kg mango in her backyard this season.", "accept": ["insufficient_evidence"]}
+{"id": "o01", "lang": "en", "category": "opinion", "text": "I think Pune is the best city in India to live in.", "accept": ["not_checkable"]}
+{"id": "hi01", "lang": "hi", "category": "true", "text": "भारत का राष्ट्रीय पशु बाघ है।", "accept": ["verified"]}
+{"id": "hi02", "lang": "hi", "category": "false", "text": "गर्म पानी में हल्दी पीने से कोरोना वायरस पूरी तरह खत्म हो जाता है।", "accept": ["false", "misleading"]}
+{"id": "mr01", "lang": "mr", "category": "true", "text": "महाराष्ट्राची राजधानी मुंबई आहे.", "accept": ["verified"]}
+{"id": "mr02", "lang": "mr", "category": "false", "text": "शिवाजी महाराजांचा जन्म पुण्यातील शनिवारवाड्यात झाला.", "accept": ["false"]}

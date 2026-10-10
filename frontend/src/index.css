@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas: 241 243 242;      /* chat wallpaper */
+  --surface: 255 255 255;
+  --surface-2: 248 249 250;
+  --sunken: 240 242 244;
+  --line: 226 230 234;
+  --ink: 17 24 39;
+  --ink-2: 75 85 99;
+  --ink-3: 120 130 142;
+  --brand: 15 118 110;        /* setu teal */
+  --brand-ink: 255 255 255;
+  --brand-soft: 224 242 239;
+  --accent: 245 158 11;       /* saffron, used sparingly */
+  --bubble: 220 243 237;      /* submitted message */
+  --bubble-in: 255 255 255;
+  --danger: 190 18 60;
+  --danger-soft: 255 241 242;
+  --warn: 180 83 9;
+  --warn-soft: 255 251 235;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --canvas: 12 18 21;
+  --surface: 20 27 31;
+  --surface-2: 25 33 38;
+  --sunken: 15 21 25;
+  --line: 40 51 58;
+  --ink: 231 236 239;
+  --ink-2: 168 179 187;
+  --ink-3: 125 138 148;
+  --brand: 45 180 165;
+  --brand-ink: 6 30 28;
+  --brand-soft: 18 52 50;
+  --accent: 251 191 36;
+  --bubble: 17 64 58;
+  --bubble-in: 29 38 44;
+  --danger: 251 113 133;
+  --danger-soft: 60 20 30;
+  --warn: 251 191 36;
+  --warn-soft: 55 40 12;
+  color-scheme: dark;
+}
+
+html, body, #root { height: 100%; }
+body {
+  @apply bg-canvas text-ink antialiased;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Subtle bridge-and-dot wallpaper for the chat area. */
+.chat-wallpaper {
+  background-color: rgb(var(--canvas));
+  background-image:
+    radial-gradient(rgb(var(--ink) / 0.045) 1px, transparent 1px),
+    radial-gradient(rgb(var(--brand) / 0.04) 1px, transparent 1px);
+  background-size: 22px 22px, 22px 22px;
+  background-position: 0 0, 11px 11px;
+}
+
+.scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--ink) / 0.18) transparent; }
+.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: rgb(var(--ink) / 0.16); border-radius: 8px; }
+
+.focus-ring { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface; }
+
+.skeleton { @apply relative overflow-hidden rounded-md bg-sunken; }
+.skeleton::after {
+  content: ""; position: absolute; inset: 0; transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(var(--surface) / 0.6), transparent);
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

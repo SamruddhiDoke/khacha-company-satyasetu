@@ -31,8 +31,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "127.0.0.1:8000:8000"   # API (localhost only) - the UI uses it through the frontend proxy
+    # Not published to the host: the UI reaches the API through the frontend's /api proxy.
     restart: unless-stopped
 
   frontend:

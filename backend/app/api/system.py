@@ -1,7 +1,7 @@
 """Health, readiness, capabilities, usage and preferences."""
 from __future__ import annotations
 
-import importlib.util
+import importlib
 import shutil
 
 from fastapi import APIRouter, Depends
@@ -25,6 +25,14 @@ DATA_USE_NOTICE = (
     "that submitted content may be used to improve its products and may be reviewed by humans. Do not verify "
     "messages containing passwords, OTPs, ID numbers or other sensitive personal information."
 )
+
+
+def _importable(module: str) -> bool:
+    try:
+        importlib.import_module(module)
+        return True
+    except Exception:
+        return False
 
 
 @router.get("/health")
@@ -72,7 +80,7 @@ async def capabilities(probe: bool = False):
         configured=s.factcheck_configured,
         detail="Google Fact Check Tools API" if s.factcheck_configured else "Optional: set FACTCHECK_API_KEY.")
     tesseract = shutil.which("tesseract") is not None
-    whisper = s.whisper_enabled and importlib.util.find_spec("faster_whisper") is not None
+    whisper = s.whisper_enabled and _importable("faster_whisper")
     modalities = {
         "text": ProviderStatus(configured=True, detail="Typed or pasted text"),
         "url": ProviderStatus(configured=True, detail="Public web pages (fetched with SSRF protection)"),

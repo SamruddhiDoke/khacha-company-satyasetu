@@ -1,0 +1,50 @@
+name: satyasetu-v2
+
+services:
+  db:
+    image: postgres:16.6-alpine
+    environment:
+      POSTGRES_USER: satyasetu
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-satyasetu-local}
+      POSTGRES_DB: satyasetu
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U satyasetu -d satyasetu"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+asyncpg://satyasetu:${POSTGRES_PASSWORD:-satyasetu-local}@db:5432/satyasetu
+      DATA_DIR: /data
+    volumes:
+      - appdata:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"   # API (localhost only) - the UI uses it through the frontend proxy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:80"     # open http://localhost:8080
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  appdata:

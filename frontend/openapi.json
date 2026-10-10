@@ -1,0 +1,2617 @@
+{
+ "openapi": "3.1.0",
+ "info": {
+  "title": "SatyaSetu API",
+  "description": "Evidence-based verification of forwarded messages.",
+  "version": "0.1.0"
+ },
+ "paths": {
+  "/api/health": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Health",
+    "operationId": "health_api_health_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/ready": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Ready",
+    "operationId": "ready_api_ready_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/capabilities": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Capabilities",
+    "operationId": "capabilities_api_capabilities_get",
+    "parameters": [
+     {
+      "name": "probe",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "boolean",
+       "default": false,
+       "title": "Probe"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Capabilities"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/usage": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Usage",
+    "operationId": "usage_api_usage_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/UsageOut"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/preferences": {
+   "get": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Get Preferences",
+    "operationId": "get_preferences_api_preferences_get",
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Preferences"
+        }
+       }
+      }
+     }
+    }
+   },
+   "put": {
+    "tags": [
+     "system"
+    ],
+    "summary": "Put Preferences",
+    "operationId": "put_preferences_api_preferences_put",
+    "requestBody": {
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Preferences"
+       }
+      }
+     },
+     "required": true
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Preferences"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/conversations": {
+   "get": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "List Conversations",
+    "operationId": "list_conversations_api_conversations_get",
+    "parameters": [
+     {
+      "name": "q",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Q"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/ConversationOut"
+         },
+         "title": "Response List Conversations Api Conversations Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Create Conversation",
+    "operationId": "create_conversation_api_conversations_post",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ConversationCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConversationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/conversations/{conv_id}": {
+   "get": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Get Conversation",
+    "operationId": "get_conversation_api_conversations__conv_id__get",
+    "parameters": [
+     {
+      "name": "conv_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Conv Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConversationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "patch": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Rename Conversation",
+    "operationId": "rename_conversation_api_conversations__conv_id__patch",
+    "parameters": [
+     {
+      "name": "conv_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Conv Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/ConversationUpdate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ConversationOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "delete": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Delete Conversation",
+    "operationId": "delete_conversation_api_conversations__conv_id__delete",
+    "parameters": [
+     {
+      "name": "conv_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Conv Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/conversations/{conv_id}/messages": {
+   "get": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "List Messages",
+    "operationId": "list_messages_api_conversations__conv_id__messages_get",
+    "parameters": [
+     {
+      "name": "conv_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Conv Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/MessageOut"
+         },
+         "title": "Response List Messages Api Conversations  Conv Id  Messages Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "post": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Send Message",
+    "operationId": "send_message_api_conversations__conv_id__messages_post",
+    "parameters": [
+     {
+      "name": "conv_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Conv Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/MessageCreate"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MessageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/conversations/{conv_id}/attachments": {
+   "post": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Upload Attachment",
+    "operationId": "upload_attachment_api_conversations__conv_id__attachments_post",
+    "parameters": [
+     {
+      "name": "conv_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Conv Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "multipart/form-data": {
+       "schema": {
+        "$ref": "#/components/schemas/Body_upload_attachment_api_conversations__conv_id__attachments_post"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/MessageOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/attachments/{att_id}/file": {
+   "get": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Get Attachment File",
+    "operationId": "get_attachment_file_api_attachments__att_id__file_get",
+    "parameters": [
+     {
+      "name": "att_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Att Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/attachments/{att_id}/text": {
+   "get": {
+    "tags": [
+     "chat"
+    ],
+    "summary": "Get Attachment Text",
+    "operationId": "get_attachment_text_api_attachments__att_id__text_get",
+    "parameters": [
+     {
+      "name": "att_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Att Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {}
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/messages/{message_id}/verifications": {
+   "post": {
+    "tags": [
+     "verification"
+    ],
+    "summary": "Start Verification",
+    "operationId": "start_verification_api_messages__message_id__verifications_post",
+    "parameters": [
+     {
+      "name": "message_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Message Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/VerifyRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobSummary"
+        }
+       }
+      }
+     },
+     "202": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobSummary"
+        }
+       }
+      },
+      "description": "Accepted"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/verifications/{job_id}": {
+   "get": {
+    "tags": [
+     "verification"
+    ],
+    "summary": "Get Verification",
+    "operationId": "get_verification_api_verifications__job_id__get",
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Job Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/JobDetail"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/verifications/{job_id}/events": {
+   "get": {
+    "tags": [
+     "verification"
+    ],
+    "summary": "Stream Events",
+    "description": "Server-Sent Events. Replays persisted events after `Last-Event-ID` (or ?after=), then streams live ones.",
+    "operationId": "stream_events_api_verifications__job_id__events_get",
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Job Id"
+      }
+     },
+     {
+      "name": "after",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 0,
+       "title": "After"
+      }
+     },
+     {
+      "name": "last-event-id",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Last-Event-Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "text/event-stream": {}
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/verifications/{job_id}/corrections": {
+   "post": {
+    "tags": [
+     "verification"
+    ],
+    "summary": "Create Correction",
+    "operationId": "create_correction_api_verifications__job_id__corrections_post",
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Job Id"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/CorrectionRequest"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/CorrectionOut"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "tags": [
+     "verification"
+    ],
+    "summary": "List Corrections",
+    "operationId": "list_corrections_api_verifications__job_id__corrections_get",
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Job Id"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/CorrectionOut"
+         },
+         "title": "Response List Corrections Api Verifications  Job Id  Corrections Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/history": {
+   "get": {
+    "tags": [
+     "verification"
+    ],
+    "summary": "History",
+    "operationId": "history_api_history_get",
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "integer",
+       "default": 50,
+       "title": "Limit"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "array",
+         "items": {
+          "$ref": "#/components/schemas/HistoryItem"
+         },
+         "title": "Response History Api History Get"
+        }
+       }
+      }
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/history/{job_id}": {
+   "delete": {
+    "tags": [
+     "verification"
+    ],
+    "summary": "Delete History Item",
+    "operationId": "delete_history_item_api_history__job_id__delete",
+    "parameters": [
+     {
+      "name": "job_id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string",
+       "format": "uuid",
+       "title": "Job Id"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "Successful Response"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "components": {
+  "schemas": {
+   "AttachmentOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "filename": {
+      "type": "string",
+      "title": "Filename"
+     },
+     "mime_type": {
+      "type": "string",
+      "title": "Mime Type"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "size_bytes": {
+      "type": "integer",
+      "title": "Size Bytes"
+     },
+     "extraction_method": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Extraction Method"
+     },
+     "extraction_confidence": {
+      "anyOf": [
+       {
+        "type": "number"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Extraction Confidence"
+     },
+     "extraction_warnings": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Extraction Warnings",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "filename",
+     "mime_type",
+     "kind",
+     "size_bytes"
+    ],
+    "title": "AttachmentOut"
+   },
+   "Body_upload_attachment_api_conversations__conv_id__attachments_post": {
+    "properties": {
+     "file": {
+      "type": "string",
+      "format": "binary",
+      "title": "File"
+     },
+     "caption": {
+      "type": "string",
+      "title": "Caption",
+      "default": ""
+     }
+    },
+    "type": "object",
+    "required": [
+     "file"
+    ],
+    "title": "Body_upload_attachment_api_conversations__conv_id__attachments_post"
+   },
+   "Capabilities": {
+    "properties": {
+     "live_verification": {
+      "type": "boolean",
+      "title": "Live Verification"
+     },
+     "providers": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/ProviderStatus"
+      },
+      "type": "object",
+      "title": "Providers"
+     },
+     "modalities": {
+      "additionalProperties": {
+       "$ref": "#/components/schemas/ProviderStatus"
+      },
+      "type": "object",
+      "title": "Modalities"
+     },
+     "languages": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Languages"
+     },
+     "limits": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Limits"
+     },
+     "retention_days": {
+      "type": "integer",
+      "title": "Retention Days"
+     },
+     "data_use_notice": {
+      "type": "string",
+      "title": "Data Use Notice"
+     }
+    },
+    "type": "object",
+    "required": [
+     "live_verification",
+     "providers",
+     "modalities",
+     "languages",
+     "limits",
+     "retention_days",
+     "data_use_notice"
+    ],
+    "title": "Capabilities"
+   },
+   "ClaimOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "idx": {
+      "type": "integer",
+      "title": "Idx"
+     },
+     "original_text": {
+      "type": "string",
+      "title": "Original Text"
+     },
+     "span_found": {
+      "type": "boolean",
+      "title": "Span Found"
+     },
+     "normalized": {
+      "type": "string",
+      "title": "Normalized"
+     },
+     "claim_type": {
+      "type": "string",
+      "title": "Claim Type"
+     },
+     "checkable": {
+      "type": "boolean",
+      "title": "Checkable"
+     },
+     "reason_not_checkable": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Reason Not Checkable"
+     },
+     "entities": {
+      "items": {},
+      "type": "array",
+      "title": "Entities"
+     },
+     "dates": {
+      "items": {},
+      "type": "array",
+      "title": "Dates"
+     },
+     "numbers": {
+      "items": {},
+      "type": "array",
+      "title": "Numbers"
+     },
+     "attribution": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Attribution"
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location"
+     },
+     "topic": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Topic"
+     },
+     "queries": {
+      "items": {},
+      "type": "array",
+      "title": "Queries"
+     },
+     "verdict": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Verdict"
+     },
+     "evidence_strength": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Evidence Strength"
+     },
+     "verdict_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Verdict Reason"
+     },
+     "missing_context": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Missing Context"
+     },
+     "conflict_note": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Conflict Note"
+     },
+     "what_would_change": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "What Would Change"
+     },
+     "weights": {
+      "type": "object",
+      "title": "Weights"
+     },
+     "evidence": {
+      "items": {
+       "$ref": "#/components/schemas/EvidenceOut"
+      },
+      "type": "array",
+      "title": "Evidence"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "idx",
+     "original_text",
+     "span_found",
+     "normalized",
+     "claim_type",
+     "checkable",
+     "reason_not_checkable",
+     "entities",
+     "dates",
+     "numbers",
+     "attribution",
+     "location",
+     "topic",
+     "queries",
+     "verdict",
+     "evidence_strength",
+     "verdict_reason",
+     "missing_context",
+     "conflict_note",
+     "what_would_change",
+     "weights",
+     "evidence"
+    ],
+    "title": "ClaimOut"
+   },
+   "ConversationCreate": {
+    "properties": {
+     "title": {
+      "anyOf": [
+       {
+        "type": "string",
+        "maxLength": 120
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Title"
+     }
+    },
+    "type": "object",
+    "title": "ConversationCreate"
+   },
+   "ConversationOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Updated At"
+     },
+     "last_message_preview": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Message Preview"
+     },
+     "last_verdict": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Verdict"
+     },
+     "last_status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Last Status"
+     },
+     "message_count": {
+      "type": "integer",
+      "title": "Message Count",
+      "default": 0
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "title",
+     "created_at",
+     "updated_at"
+    ],
+    "title": "ConversationOut"
+   },
+   "ConversationUpdate": {
+    "properties": {
+     "title": {
+      "type": "string",
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Title"
+     }
+    },
+    "type": "object",
+    "required": [
+     "title"
+    ],
+    "title": "ConversationUpdate"
+   },
+   "CorrectionOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "job_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Job Id"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "generator": {
+      "type": "string",
+      "title": "Generator"
+     },
+     "validation": {
+      "type": "object",
+      "title": "Validation"
+     },
+     "language": {
+      "type": "string",
+      "title": "Language"
+     },
+     "tone": {
+      "type": "string",
+      "title": "Tone"
+     },
+     "relationship_to": {
+      "type": "string",
+      "title": "Relationship To"
+     },
+     "channel": {
+      "type": "string",
+      "title": "Channel"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "links": {
+      "items": {
+       "$ref": "#/components/schemas/SourceLink"
+      },
+      "type": "array",
+      "title": "Links",
+      "default": []
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "job_id",
+     "text",
+     "generator",
+     "validation",
+     "language",
+     "tone",
+     "relationship_to",
+     "channel",
+     "created_at"
+    ],
+    "title": "CorrectionOut"
+   },
+   "CorrectionRequest": {
+    "properties": {
+     "relationship": {
+      "type": "string",
+      "enum": [
+       "elder",
+       "friend",
+       "colleague",
+       "group_admin",
+       "other"
+      ],
+      "title": "Relationship",
+      "default": "friend"
+     },
+     "channel": {
+      "type": "string",
+      "enum": [
+       "private",
+       "group"
+      ],
+      "title": "Channel",
+      "default": "private"
+     },
+     "language": {
+      "type": "string",
+      "enum": [
+       "en",
+       "hi",
+       "mr"
+      ],
+      "title": "Language",
+      "default": "en"
+     },
+     "tone": {
+      "type": "string",
+      "enum": [
+       "gentle",
+       "respectful",
+       "neutral",
+       "direct",
+       "formal"
+      ],
+      "title": "Tone",
+      "default": "respectful"
+     }
+    },
+    "type": "object",
+    "title": "CorrectionRequest"
+   },
+   "EventOut": {
+    "properties": {
+     "id": {
+      "type": "integer",
+      "title": "Id"
+     },
+     "seq": {
+      "type": "integer",
+      "title": "Seq"
+     },
+     "job_id": {
+      "type": "string",
+      "title": "Job Id"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "stage": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Stage"
+     },
+     "status": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Status"
+     },
+     "detail": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Detail"
+     },
+     "at": {
+      "type": "string",
+      "title": "At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "seq",
+     "job_id",
+     "kind",
+     "stage",
+     "status",
+     "detail",
+     "at"
+    ],
+    "title": "EventOut"
+   },
+   "EvidenceOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "source_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Source Id"
+     },
+     "quote": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Quote"
+     },
+     "passage": {
+      "type": "string",
+      "title": "Passage"
+     },
+     "stance": {
+      "type": "string",
+      "title": "Stance"
+     },
+     "rationale": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rationale"
+     },
+     "quote_valid": {
+      "type": "boolean",
+      "title": "Quote Valid"
+     },
+     "rejected_reason": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Rejected Reason"
+     },
+     "temporal_issue": {
+      "type": "boolean",
+      "title": "Temporal Issue"
+     },
+     "missing_context": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Missing Context"
+     },
+     "counted": {
+      "type": "boolean",
+      "title": "Counted"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "source_id",
+     "quote",
+     "passage",
+     "stance",
+     "rationale",
+     "quote_valid",
+     "rejected_reason",
+     "temporal_issue",
+     "missing_context",
+     "counted"
+    ],
+    "title": "EvidenceOut"
+   },
+   "FindingOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "category": {
+      "type": "string",
+      "title": "Category"
+     },
+     "check": {
+      "type": "string",
+      "title": "Check"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "detail": {
+      "type": "string",
+      "title": "Detail"
+     },
+     "location": {
+      "anyOf": [
+       {
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Location"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "category",
+     "check",
+     "title",
+     "detail",
+     "location"
+    ],
+    "title": "FindingOut"
+   },
+   "HTTPValidationError": {
+    "properties": {
+     "detail": {
+      "items": {
+       "$ref": "#/components/schemas/ValidationError"
+      },
+      "type": "array",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "title": "HTTPValidationError"
+   },
+   "HarmOut": {
+    "properties": {
+     "level": {
+      "type": "string",
+      "title": "Level"
+     },
+     "signals": {
+      "items": {
+       "$ref": "#/components/schemas/HarmSignalOut"
+      },
+      "type": "array",
+      "title": "Signals"
+     }
+    },
+    "type": "object",
+    "required": [
+     "level",
+     "signals"
+    ],
+    "title": "HarmOut"
+   },
+   "HarmSignalOut": {
+    "properties": {
+     "category": {
+      "type": "string",
+      "title": "Category"
+     },
+     "severity": {
+      "type": "string",
+      "title": "Severity"
+     },
+     "title": {
+      "type": "string",
+      "title": "Title"
+     },
+     "detail": {
+      "type": "string",
+      "title": "Detail"
+     },
+     "evidence": {
+      "items": {
+       "type": "string"
+      },
+      "type": "array",
+      "title": "Evidence"
+     }
+    },
+    "type": "object",
+    "required": [
+     "category",
+     "severity",
+     "title",
+     "detail",
+     "evidence"
+    ],
+    "title": "HarmSignalOut"
+   },
+   "HistoryItem": {
+    "properties": {
+     "job": {
+      "$ref": "#/components/schemas/JobSummary"
+     },
+     "conversation_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Conversation Id"
+     },
+     "conversation_title": {
+      "type": "string",
+      "title": "Conversation Title"
+     },
+     "message_preview": {
+      "type": "string",
+      "title": "Message Preview"
+     },
+     "claim_count": {
+      "type": "integer",
+      "title": "Claim Count"
+     }
+    },
+    "type": "object",
+    "required": [
+     "job",
+     "conversation_id",
+     "conversation_title",
+     "message_preview",
+     "claim_count"
+    ],
+    "title": "HistoryItem"
+   },
+   "JobDetail": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "message_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Message Id"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "queued",
+       "running",
+       "completed",
+       "failed"
+      ],
+      "title": "Status"
+     },
+     "attempt": {
+      "type": "integer",
+      "title": "Attempt"
+     },
+     "language": {
+      "type": "string",
+      "title": "Language"
+     },
+     "overall_verdict": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Overall Verdict"
+     },
+     "evidence_strength": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Evidence Strength"
+     },
+     "error_code": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error Code"
+     },
+     "error_message": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error Message"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "started_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Started At"
+     },
+     "finished_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finished At"
+     },
+     "input_text": {
+      "type": "string",
+      "title": "Input Text"
+     },
+     "conversation_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Conversation Id"
+     },
+     "explanation": {
+      "anyOf": [
+       {
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Explanation"
+     },
+     "harm": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/HarmOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "content_meta": {
+      "anyOf": [
+       {
+        "type": "object"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Content Meta"
+     },
+     "models_used": {
+      "items": {},
+      "type": "array",
+      "title": "Models Used"
+     },
+     "usage": {
+      "type": "object",
+      "title": "Usage"
+     },
+     "claims": {
+      "items": {
+       "$ref": "#/components/schemas/ClaimOut"
+      },
+      "type": "array",
+      "title": "Claims"
+     },
+     "sources": {
+      "items": {
+       "$ref": "#/components/schemas/SourceOut"
+      },
+      "type": "array",
+      "title": "Sources"
+     },
+     "findings": {
+      "items": {
+       "$ref": "#/components/schemas/FindingOut"
+      },
+      "type": "array",
+      "title": "Findings"
+     },
+     "events": {
+      "items": {
+       "$ref": "#/components/schemas/EventOut"
+      },
+      "type": "array",
+      "title": "Events"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "message_id",
+     "status",
+     "attempt",
+     "language",
+     "overall_verdict",
+     "evidence_strength",
+     "error_code",
+     "error_message",
+     "created_at",
+     "started_at",
+     "finished_at",
+     "input_text",
+     "conversation_id",
+     "explanation",
+     "harm",
+     "content_meta",
+     "models_used",
+     "usage",
+     "claims",
+     "sources",
+     "findings",
+     "events"
+    ],
+    "title": "JobDetail"
+   },
+   "JobSummary": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "message_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Message Id"
+     },
+     "status": {
+      "type": "string",
+      "enum": [
+       "queued",
+       "running",
+       "completed",
+       "failed"
+      ],
+      "title": "Status"
+     },
+     "attempt": {
+      "type": "integer",
+      "title": "Attempt"
+     },
+     "language": {
+      "type": "string",
+      "title": "Language"
+     },
+     "overall_verdict": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Overall Verdict"
+     },
+     "evidence_strength": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Evidence Strength"
+     },
+     "error_code": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error Code"
+     },
+     "error_message": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Error Message"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "started_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Started At"
+     },
+     "finished_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Finished At"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "message_id",
+     "status",
+     "attempt",
+     "language",
+     "overall_verdict",
+     "evidence_strength",
+     "error_code",
+     "error_message",
+     "created_at",
+     "started_at",
+     "finished_at"
+    ],
+    "title": "JobSummary"
+   },
+   "MessageCreate": {
+    "properties": {
+     "text": {
+      "type": "string",
+      "maxLength": 6000,
+      "minLength": 1,
+      "title": "Text"
+     }
+    },
+    "type": "object",
+    "required": [
+     "text"
+    ],
+    "title": "MessageCreate"
+   },
+   "MessageOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "conversation_id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Conversation Id"
+     },
+     "seq": {
+      "type": "integer",
+      "title": "Seq"
+     },
+     "role": {
+      "type": "string",
+      "title": "Role"
+     },
+     "kind": {
+      "type": "string",
+      "title": "Kind"
+     },
+     "text": {
+      "type": "string",
+      "title": "Text"
+     },
+     "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "title": "Created At"
+     },
+     "attachment": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/AttachmentOut"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     },
+     "latest_job": {
+      "anyOf": [
+       {
+        "$ref": "#/components/schemas/JobSummary"
+       },
+       {
+        "type": "null"
+       }
+      ]
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "conversation_id",
+     "seq",
+     "role",
+     "kind",
+     "text",
+     "created_at"
+    ],
+    "title": "MessageOut"
+   },
+   "Preferences": {
+    "properties": {
+     "language": {
+      "type": "string",
+      "enum": [
+       "en",
+       "hi",
+       "mr"
+      ],
+      "title": "Language",
+      "default": "en"
+     },
+     "theme": {
+      "type": "string",
+      "enum": [
+       "system",
+       "light",
+       "dark"
+      ],
+      "title": "Theme",
+      "default": "system"
+     },
+     "explanation_language": {
+      "anyOf": [
+       {
+        "type": "string",
+        "enum": [
+         "en",
+         "hi",
+         "mr"
+        ]
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Explanation Language"
+     }
+    },
+    "type": "object",
+    "title": "Preferences"
+   },
+   "ProviderStatus": {
+    "properties": {
+     "configured": {
+      "type": "boolean",
+      "title": "Configured"
+     },
+     "detail": {
+      "type": "string",
+      "title": "Detail"
+     }
+    },
+    "type": "object",
+    "required": [
+     "configured",
+     "detail"
+    ],
+    "title": "ProviderStatus"
+   },
+   "SourceLink": {
+    "properties": {
+     "label": {
+      "type": "string",
+      "title": "Label"
+     },
+     "url": {
+      "type": "string",
+      "title": "Url"
+     },
+     "publisher": {
+      "type": "string",
+      "title": "Publisher"
+     }
+    },
+    "type": "object",
+    "required": [
+     "label",
+     "url",
+     "publisher"
+    ],
+    "title": "SourceLink"
+   },
+   "SourceOut": {
+    "properties": {
+     "id": {
+      "type": "string",
+      "format": "uuid",
+      "title": "Id"
+     },
+     "label": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Label"
+     },
+     "url": {
+      "type": "string",
+      "title": "Url"
+     },
+     "final_url": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Final Url"
+     },
+     "domain": {
+      "type": "string",
+      "title": "Domain"
+     },
+     "title": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Title"
+     },
+     "publisher": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Publisher"
+     },
+     "published_date": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Published Date"
+     },
+     "tier": {
+      "type": "string",
+      "title": "Tier"
+     },
+     "found_via": {
+      "type": "string",
+      "title": "Found Via"
+     },
+     "retrieval_method": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Retrieval Method"
+     },
+     "retrieved_at": {
+      "anyOf": [
+       {
+        "type": "string",
+        "format": "date-time"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Retrieved At"
+     },
+     "http_status": {
+      "anyOf": [
+       {
+        "type": "integer"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Http Status"
+     },
+     "fetch_ok": {
+      "type": "boolean",
+      "title": "Fetch Ok"
+     },
+     "fetch_error": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Fetch Error"
+     },
+     "factcheck_rating": {
+      "anyOf": [
+       {
+        "type": "string"
+       },
+       {
+        "type": "null"
+       }
+      ],
+      "title": "Factcheck Rating"
+     }
+    },
+    "type": "object",
+    "required": [
+     "id",
+     "url",
+     "final_url",
+     "domain",
+     "title",
+     "publisher",
+     "published_date",
+     "tier",
+     "found_via",
+     "retrieval_method",
+     "retrieved_at",
+     "http_status",
+     "fetch_ok",
+     "fetch_error",
+     "factcheck_rating"
+    ],
+    "title": "SourceOut"
+   },
+   "UsageOut": {
+    "properties": {
+     "today": {
+      "items": {
+       "$ref": "#/components/schemas/UsageRow"
+      },
+      "type": "array",
+      "title": "Today"
+     },
+     "limits": {
+      "additionalProperties": {
+       "type": "integer"
+      },
+      "type": "object",
+      "title": "Limits"
+     }
+    },
+    "type": "object",
+    "required": [
+     "today",
+     "limits"
+    ],
+    "title": "UsageOut"
+   },
+   "UsageRow": {
+    "properties": {
+     "provider": {
+      "type": "string",
+      "title": "Provider"
+     },
+     "day": {
+      "type": "string",
+      "title": "Day"
+     },
+     "requests": {
+      "type": "integer",
+      "title": "Requests"
+     },
+     "units": {
+      "type": "integer",
+      "title": "Units"
+     },
+     "errors": {
+      "type": "integer",
+      "title": "Errors"
+     }
+    },
+    "type": "object",
+    "required": [
+     "provider",
+     "day",
+     "requests",
+     "units",
+     "errors"
+    ],
+    "title": "UsageRow"
+   },
+   "ValidationError": {
+    "properties": {
+     "loc": {
+      "items": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "integer"
+        }
+       ]
+      },
+      "type": "array",
+      "title": "Location"
+     },
+     "msg": {
+      "type": "string",
+      "title": "Message"
+     },
+     "type": {
+      "type": "string",
+      "title": "Error Type"
+     }
+    },
+    "type": "object",
+    "required": [
+     "loc",
+     "msg",
+     "type"
+    ],
+    "title": "ValidationError"
+   },
+   "VerifyRequest": {
+    "properties": {
+     "retry": {
+      "type": "boolean",
+      "title": "Retry",
+      "default": false
+     },
+     "language": {
+      "type": "string",
+      "enum": [
+       "en",
+       "hi",
+       "mr"
+      ],
+      "title": "Language",
+      "default": "en"
+     }
+    },
+    "type": "object",
+    "title": "VerifyRequest"
+   }
+  }
+ }
+}

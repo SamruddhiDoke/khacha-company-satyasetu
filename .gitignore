@@ -21,3 +21,24 @@ eval/results/*.json
 !eval/results/.gitkeep
 *.log
 .DS_Store
+
+# virtualenvs / coverage
+venv/
+env/
+.coverage
+htmlcov/
+coverage/
+
+# credentials, certificates, dumps, local data
+*.pem
+*.key
+*.p12
+*.pfx
+*.dump
+*.sql.gz
+backups/
+uploads/
+
+# hosting CLIs (contain project/org ids and local tokens)
+.vercel/
+.render/

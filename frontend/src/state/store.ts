@@ -64,6 +64,14 @@ interface State {
 }
 
 const streams = new Map<string, EventSource>();
+// Fallback when the live stream cannot be used (e.g. a proxy returned an HTML error page, which makes the
+// browser close the EventSource permanently): poll the job until it finishes, with a hard upper bound.
+let POLL_MS = 4000;
+const POLL_MAX_MS = 10 * 60_000;
+const WATCHDOG_MS = 30_000;
+export function _setPollMsForTests(ms: number): void {
+  POLL_MS = ms;
+}
 const ACTIVE = new Set(["queued", "running"]);
 let toastId = 0;
 
@@ -96,11 +104,46 @@ export const useStore = create<State>((set, get) => {
     }
   };
 
+  const isTerminal = (jobId: string) => {
+    const st = get().jobs[jobId]?.summary.status;
+    return st === "completed" || st === "failed";
+  };
+
+  const pollUntilDone = async (jobId: string) => {
+    const t0 = Date.now();
+    while (Date.now() - t0 < POLL_MAX_MS) {
+      await new Promise((r) => setTimeout(r, POLL_MS));
+      try {
+        const d = await api.getVerification(jobId);
+        registerJob(d);
+        updateJob(jobId, (j) => ({ ...j, summary: d, detail: d, events: mergeEvents(j.events, d.events) }));
+        if (d.status === "completed" || d.status === "failed") {
+          void get().refreshConversations();
+          return;
+        }
+      } catch {
+        // transient: keep polling until the bound
+      }
+    }
+    get().toast("Lost contact with this check. Reload the page to see its latest status.", "error");
+  };
+
   const stream = (jobId: string) => {
     if (streams.has(jobId)) return;
     const es = new EventSource(api.eventsUrl(jobId)); // the browser resends Last-Event-ID on reconnect
     streams.set(jobId, es);
+    // Safety net: even if the stream silently stalls, check the job's real status now and then.
+    const watchdog = setInterval(() => {
+      if (isTerminal(jobId)) return;
+      void api.getVerification(jobId).then((d) => {
+        if ((d.status === "completed" || d.status === "failed") && streams.get(jobId) === es) finish();
+      }).catch(() => {});
+    }, WATCHDOG_MS);
+    let finished = false;
     const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearInterval(watchdog);
       es.close();
       streams.delete(jobId);
       void loadDetail(jobId).then(() => get().refreshConversations());
@@ -117,8 +160,16 @@ export const useStore = create<State>((set, get) => {
     es.addEventListener("stage", onEvent as EventListener);
     es.addEventListener("done", onEvent as EventListener);
     es.addEventListener("error", (ev) => {
-      if ((ev as MessageEvent).data) onEvent(ev as MessageEvent); // server "error" event (job failed)
-      // otherwise a transport error: EventSource reconnects by itself and replays missed events
+      if ((ev as MessageEvent).data) {
+        onEvent(ev as MessageEvent); // server "error" event (job failed)
+      } else if (es.readyState === EventSource.CLOSED && !finished) {
+        // The browser gave up on the stream (non-stream response such as a proxy 502 page): poll instead.
+        finished = true;
+        clearInterval(watchdog);
+        streams.delete(jobId);
+        void pollUntilDone(jobId);
+      }
+      // otherwise (CONNECTING) the browser reconnects by itself and replays missed events via Last-Event-ID
     });
     es.addEventListener("status", finish); // job already finished (e.g. interrupted by restart)
   };

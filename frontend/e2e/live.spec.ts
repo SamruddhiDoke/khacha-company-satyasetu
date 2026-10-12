@@ -18,8 +18,18 @@ test("live: one unseen claim through the real UI", async ({ page }, info) => {
   await expect(bubble).toBeVisible();
   const req = page.waitForRequest((r) => r.url().includes("/verifications") && r.method() === "POST");
   await bubble.getByTestId("verify-button").click();
-  const job = await (await (await req).response())!.json();
-  await expect(bubble.getByTestId("verify-result").or(bubble.getByTestId("verify-failed"))).toBeVisible({ timeout: 200_000 });
+  const resp = (await (await req).response())!;
+  const job = await resp.json();
+  console.log("VERIFY POST", resp.status(), job.id ?? JSON.stringify(job));
+  try {
+    await expect(bubble.getByTestId("verify-result").or(bubble.getByTestId("verify-failed"))).toBeVisible({ timeout: 200_000 });
+  } catch (e) {
+    const d = job.id ? await page.request.get(`/api/verifications/${job.id}`).then((r) => r.json()) : null;
+    const last = d?.events?.[d.events.length - 1];
+    console.log("TIMEOUT DIAG server:", d?.status, d?.error_code, "last:", last?.stage, last?.status,
+                "| toasts:", JSON.stringify(await page.locator("[role=alert],[role=status]").allInnerTexts()));
+    throw e;
+  }
   const detail = await page.request.get(`/api/verifications/${job.id}`).then((r) => r.json());
   writeFileSync("test-results/live-job.json", JSON.stringify(detail, null, 1));
   if (detail.status === "completed") {

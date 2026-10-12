@@ -242,6 +242,10 @@ async def _run(job_id: uuid.UUID, stats: CallStats) -> None:
             by_id = {pid: (s, p) for pid, s, p in numbered}
             evaluations[i] = [(by_id[a.passage_id][0], by_id[a.passage_id][1], a)
                               for a in result.assessments if a.passage_id in by_id]
+            unknown = [a.passage_id for a in result.assessments if a.passage_id not in by_id]
+            if unknown or not result.assessments:
+                log.warning("claim %d: %d passages sent, %d assessments returned, %d with unknown ids %s",
+                            i, len(numbered), len(result.assessments), len(unknown), unknown[:5])
             what_changes[i] = result.what_would_change
 
         await asyncio.gather(*(evaluate(i) for i, c in enumerate(claims) if c.checkable))

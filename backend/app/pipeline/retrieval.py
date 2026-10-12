@@ -129,6 +129,7 @@ async def search_claims(claims: list[tuple[int, list[str], str | None]], search:
             except ProviderError as e:
                 log.info("fact-check API lookup failed: %s", e)
         await asyncio.gather(*(fc(idx, qs[0]) for idx, qs, _ in claims if qs))
+    log.info("search hits per claim: %s (errors: %d)", {i: len(h) for i, h in results.items()}, len(errors))
     if errors and not any(results.values()):
         raise errors[0]  # every search failed - surface the real provider error
     return results

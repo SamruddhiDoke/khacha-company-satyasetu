@@ -367,3 +367,24 @@ async def test_slow_explanation_keeps_rule_verdict(client, pages, settings, monk
     job = await wait_job(client, (await client.post(f"/api/messages/{msg['id']}/verifications", json={})).json()["id"])
     assert job["status"] == "completed" and job["overall_verdict"] == "false"
     assert job["explanation"]["source"] == "template" and job["explanation"]["fallback_reason"] == "timeout"
+
+
+async def test_public_quota_protection(client, other_client, pages, settings):
+    use(ScriptedLLM(evaluate=stance_by_publisher({"example-ministry.gov.in": "refutes"})), [OFFICIAL])
+    settings.verifications_per_day_per_session = 2
+    conv = await new_conv(client)
+    ids = []
+    for i in range(3):
+        m = await send(client, conv, f"Quota test claim number {i} about the scholarship scheme amount.")
+        r = await client.post(f"/api/messages/{m['id']}/verifications", json={})
+        ids.append(r)
+    assert [r.status_code for r in ids[:2]] == [202, 202]
+    assert ids[2].status_code == 429 and ids[2].json()["code"] == "daily_limit"
+    for r in ids[:2]:
+        await wait_job(client, r.json()["id"])
+    # global hourly cap applies across sessions
+    settings.verifications_per_hour_global = 2
+    conv2 = await new_conv(other_client)
+    m = await send(other_client, conv2, "Another visitor's claim about a new government scheme.")
+    r = await other_client.post(f"/api/messages/{m['id']}/verifications", json={})
+    assert r.status_code == 429 and r.json()["code"] == "busy"

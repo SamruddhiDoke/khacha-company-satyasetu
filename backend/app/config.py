@@ -47,12 +47,17 @@ class Settings(BaseSettings):
     max_searches_per_claim: int = 2
     max_sources_per_claim: int = 4
     max_total_searches_per_check: int = 6
-    check_timeout_s: float = 180.0
+    check_timeout_s: float = 300.0  # 180 s proved too short on a free instance with slow Gemini responses
     fetch_timeout_s: float = 10.0
     fetch_contact: str = ""  # e.g. a URL or email; sent in the User-Agent of page fetches if set
     fetch_max_bytes: int = 3_000_000
     max_concurrent_checks: int = 3
     verifications_per_minute_per_session: int = 6
+    # Quota protection for a public, unauthenticated deployment (counted from the database, so restarts
+    # and cleared cookies don't reset them). The provider daily budgets above remain the hard ceiling.
+    verifications_per_hour_global: int = 30
+    verifications_per_day_per_session: int = 15
+    uploads_per_minute_per_session: int = 6
 
     # --- Uploads and media ---
     max_upload_bytes: int = 15_000_000

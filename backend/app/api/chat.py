@@ -14,6 +14,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.core.ratelimit import KeyedLimiter
 from app.core.session import current_session
 from app.db import get_db
 from app.ingest import extract
@@ -30,6 +31,14 @@ from app.schemas import (
 )
 
 router = APIRouter(prefix="/api", tags=["chat"])
+_upload_limiter: KeyedLimiter | None = None
+
+
+def upload_limiter() -> KeyedLimiter:
+    global _upload_limiter
+    if _upload_limiter is None:
+        _upload_limiter = KeyedLimiter(get_settings().uploads_per_minute_per_session)
+    return _upload_limiter
 
 
 def err(status: int, code: str, message: str) -> HTTPException:
@@ -175,6 +184,7 @@ async def upload_attachment(conv_id: uuid.UUID, file: UploadFile = File(...), ca
                             sess: Session = Depends(current_session), db: AsyncSession = Depends(get_db)):
     s = get_settings()
     await owned_conversation(db, sess, conv_id)
+    upload_limiter().hit(str(sess.id))  # OCR/PDF extraction is CPU-heavy on a small instance
     data = await file.read(s.max_upload_bytes + 1)
     if len(data) > s.max_upload_bytes:
         raise err(413, "file_too_large", f"Files must be under {s.max_upload_bytes // 1_000_000} MB.")

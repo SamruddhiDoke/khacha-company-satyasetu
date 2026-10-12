@@ -8,6 +8,8 @@ import uuid
 
 from fastapi import APIRouter, Depends, Header, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,6 +61,23 @@ def limiter() -> KeyedLimiter:
     return _limiter
 
 
+async def enforce_check_quotas(db: AsyncSession, sess: Session) -> None:
+    """Stop any single visitor (or a burst of visitors) from using up the shared free provider quota."""
+    s = get_settings()
+    now = datetime.now(timezone.utc)
+    hour = await db.scalar(select(func.count()).select_from(VerificationJob)
+                           .where(VerificationJob.created_at > now - timedelta(hours=1)))
+    if hour >= s.verifications_per_hour_global:
+        raise err(429, "busy", "SatyaSetu has reached its hourly limit of fact-checks on this free demo server. "
+                               "Please try again later.")
+    day = await db.scalar(select(func.count()).select_from(VerificationJob)
+                          .where(VerificationJob.session_id == sess.id,
+                                 VerificationJob.created_at > now - timedelta(days=1)))
+    if day >= s.verifications_per_day_per_session:
+        raise err(429, "daily_limit", f"You have used today's limit of {s.verifications_per_day_per_session} checks "
+                                      "on this free demo server. Please try again tomorrow.")
+
+
 async def owned_message(db: AsyncSession, sess: Session, message_id: uuid.UUID) -> Message:
     msg = await db.scalar(select(Message).join(Conversation).where(Message.id == message_id,
                                                                      Conversation.session_id == sess.id))
@@ -106,6 +125,7 @@ async def start_verification(message_id: uuid.UUID, body: VerifyRequest, sess: S
         raise err(422, "no_content", "This message has no words or numbers to verify.")
     msg_id = msg.id
     limiter().hit(str(sess.id))
+    await enforce_check_quotas(db, sess)
     job = VerificationJob(message_id=msg_id, session_id=sess.id, language=body.language, input_text=text,
                           input_sha256=hashlib.sha256(text.encode()).hexdigest(), attempt=len(existing) + 1)
     db.add(job)

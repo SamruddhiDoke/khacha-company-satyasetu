@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { onConnectionState } from "./api/client";
 import { useStore } from "./state/store";
 import Sidebar from "./components/Sidebar";
 import ChatPanel from "./components/ChatPanel";
@@ -29,6 +30,7 @@ export default function App() {
   const init = useStore((s) => s.init);
   const panelJobId = useStore((s) => s.panelJobId);
   useTheme();
+  useEffect(() => onConnectionState((s) => useStore.setState({ waking: s === "waking" })), []);
   useEffect(() => {
     void init();
   }, [init]);

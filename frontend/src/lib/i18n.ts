@@ -61,6 +61,7 @@ const en = {
   usageToday: "Usage today",
   providers: "Providers",
   inputs: "Supported inputs",
+  waking: "Waking up the server - the free hosting sleeps when idle, so this can take up to a minute. Your request will continue automatically.",
 };
 
 type Dict = typeof en;
@@ -111,6 +112,7 @@ const hi: Dict = {
   language: "भाषा",
   theme: "थीम",
   setupNeeded: "लाइव जाँच कॉन्फ़िगर नहीं है",
+  waking: "सर्वर शुरू हो रहा है - मुफ़्त होस्टिंग निष्क्रिय होने पर सो जाती है, इसमें एक मिनट तक लग सकता है। आपका अनुरोध अपने-आप जारी रहेगा।",
   deleteChat: "चैट हटाएँ",
   supports: "समर्थन",
   refutes: "खंडन",
@@ -166,6 +168,7 @@ const mr: Dict = {
   language: "भाषा",
   theme: "थीम",
   setupNeeded: "थेट तपासणी कॉन्फिगर केलेली नाही",
+  waking: "सर्वर सुरू होत आहे - मोफत होस्टिंग निष्क्रिय असताना झोपते, यासाठी एक मिनिटापर्यंत लागू शकतो. तुमची विनंती आपोआप पुढे सुरू राहील.",
   deleteChat: "चॅट हटवा",
   supports: "समर्थन",
   refutes: "खंडन",

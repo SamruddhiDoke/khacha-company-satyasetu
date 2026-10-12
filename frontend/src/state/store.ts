@@ -43,6 +43,7 @@ interface State {
   sidebarTab: "chats" | "history";
   settingsOpen: boolean;
   sending: boolean;
+  waking: boolean; // backend is being retried while it wakes from sleep
   toasts: Toast[];
   draft: string;
 
@@ -139,6 +140,7 @@ export const useStore = create<State>((set, get) => {
     sidebarTab: "chats",
     settingsOpen: false,
     sending: false,
+    waking: false,
     toasts: [],
     draft: "",
 

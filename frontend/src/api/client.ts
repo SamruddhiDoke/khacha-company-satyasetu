@@ -28,6 +28,87 @@ export class ApiError extends Error {
   }
 }
 
+// --- Connection state (lets the UI show "waking up" instead of an error during a cold start) -------------
+type ConnState = "ok" | "waking";
+const connListeners = new Set<(s: ConnState) => void>();
+export function onConnectionState(fn: (s: ConnState) => void): () => void {
+  connListeners.add(fn);
+  return () => connListeners.delete(fn);
+}
+let connState: ConnState = "ok";
+let retrying = 0; // requests currently waiting to retry
+let slow = 0; // requests still pending after SLOW_MS (a sleeping host holds the connection while it starts)
+export const SLOW_MS = 4000;
+function publish() {
+  const next: ConnState = retrying > 0 || slow > 0 ? "waking" : "ok";
+  if (next !== connState) {
+    connState = next;
+    connListeners.forEach((fn) => fn(next));
+  }
+}
+
+// Backoff used while the free-tier backend wakes up (~45-60 s observed). Total ~150 s, then give up honestly.
+export const RETRY_DELAYS_MS = [2000, 3000, 5000, 8000, 10000, 15000, 15000, 20000, 20000, 25000, 25000];
+let sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+export function _setSleepForTests(fn: (ms: number) => Promise<unknown>): void {
+  sleep = fn as (ms: number) => Promise<void>;
+}
+
+// "unavailable": a non-JSON answer from the hosting layer (proxy error page, host "starting" page) - the request
+// never reached SatyaSetu, so even a POST can be resent safely. "network"/"timeout" are only retried for GETs,
+// because the server might have processed a write before the connection failed.
+function retryable(e: unknown, method: string): boolean {
+  if (!(e instanceof ApiError)) return false;
+  if (e.code === "unavailable") return true;
+  return method === "GET" && (e.code === "network" || e.code === "timeout");
+}
+
+async function withRetry<T>(path: string, init: RequestInit): Promise<T> {
+  const method = (init.method ?? "GET").toUpperCase();
+  let waitingToRetry = false;
+  const stopRetrying = () => {
+    if (waitingToRetry) {
+      waitingToRetry = false;
+      retrying -= 1;
+      publish();
+    }
+  };
+  for (let attempt = 0; ; attempt++) {
+    let isSlow = false;
+    const timer = init.body instanceof FormData ? undefined : setTimeout(() => {
+      isSlow = true;
+      slow += 1;
+      publish();
+    }, SLOW_MS);
+    try {
+      const out = await rawRequest<T>(path, init);
+      stopRetrying();
+      return out;
+    } catch (e) {
+      if (!retryable(e, method) || attempt >= RETRY_DELAYS_MS.length) {
+        stopRetrying();
+        if (e instanceof ApiError && attempt > 0 && retryable(e, method)) {
+          throw new ApiError(e.status, e.code, "The SatyaSetu server did not come online after about 2 minutes. " +
+            "The free hosting may be restarting - please try again shortly.");
+        }
+        throw e;
+      }
+      if (!waitingToRetry) {
+        waitingToRetry = true;
+        retrying += 1;
+        publish();
+      }
+    } finally {
+      clearTimeout(timer);
+      if (isSlow) {
+        slow -= 1;
+        publish();
+      }
+    }
+    await sleep(RETRY_DELAYS_MS[attempt]);
+  }
+}
+
 // The backend creates an anonymous session (HttpOnly cookie) on the first request that has none. If several
 // requests are sent before any cookie exists, each creates its own session and the browser keeps whichever
 // cookie arrives last - so data created under one session becomes invisible (404) to the next request.
@@ -40,14 +121,14 @@ export function resetSessionGate(): void {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (sessionReady === null) {
-    const first = rawRequest<T>(path, init);
+    const first = withRetry<T>(path, init);
     sessionReady = first.catch(() => {
       sessionReady = null; // failed before a session existed: let the next request try again
     });
     return first;
   }
   await sessionReady;
-  return rawRequest<T>(path, init);
+  return withRetry<T>(path, init);
 }
 
 async function rawRequest<T>(path: string, init: RequestInit): Promise<T> {
@@ -55,7 +136,7 @@ async function rawRequest<T>(path: string, init: RequestInit): Promise<T> {
   try {
     res = await fetch(path, {
       credentials: "same-origin",
-      // Generous: a sleeping free-tier backend can take about a minute to wake, and uploads are processed inline.
+      // Uploads are processed inline (OCR/PDF), so they get longer than ordinary API calls.
       signal: AbortSignal.timeout(init.body instanceof FormData ? 300_000 : 130_000),
       ...init,
       headers: init.body instanceof FormData ? init.headers : { "Content-Type": "application/json", ...init.headers },
@@ -64,13 +145,15 @@ async function rawRequest<T>(path: string, init: RequestInit): Promise<T> {
     if (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError")) {
       throw new ApiError(0, "timeout", "The server took too long to respond. It may be waking up - please try again.");
     }
-    throw new ApiError(0, "network", "Cannot reach the SatyaSetu server. Check your connection and try again.");
-  }
-  const isJson = (res.headers.get("content-type") ?? "").includes("application/json");
-  if (!isJson && (res.status === 502 || res.status === 503 || res.status === 504)) {
-    throw new ApiError(res.status, "unavailable", "The SatyaSetu server is unavailable or starting up. Please try again shortly.");
+    throw new ApiError(0, "network", "Can't reach SatyaSetu. Please check your internet connection and try again.");
   }
   if (res.status === 204) return undefined as T;
+  const isJson = (res.headers.get("content-type") ?? "").includes("application/json");
+  if (!isJson) {
+    // Every SatyaSetu API response is JSON. Anything else (HTML "starting up" page, proxy error page) came from
+    // the hosting layer, not the app - never treat it as data.
+    throw new ApiError(res.status, "unavailable", "The SatyaSetu server is starting up or temporarily unavailable.");
+  }
   const body = await res.json().catch(() => null);
   if (!res.ok) {
     throw new ApiError(res.status, body?.code ?? "http_error", body?.message ?? `Request failed (${res.status})`);

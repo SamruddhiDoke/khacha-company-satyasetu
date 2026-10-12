@@ -1,4 +1,4 @@
-import { KeyRound, Menu, ShieldCheck } from "lucide-react";
+import { KeyRound, Loader2, Menu, ShieldCheck } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import type { Language } from "../api/client";
 import { useStore } from "../state/store";
@@ -51,6 +51,13 @@ export default function ChatPanel() {
           </p>
         </div>
       </header>
+
+      {s.waking && (
+        <div role="status" data-testid="waking-banner" className="flex items-start gap-3 border-b border-brand/20 bg-brand-soft px-4 py-2.5 text-[13px] text-brand md:px-6">
+          <Loader2 size={16} className="mt-0.5 shrink-0 animate-spin" />
+          <p>{s.t("waking")}</p>
+        </div>
+      )}
 
       {liveOff && (
         <div role="status" className="flex items-start gap-3 border-b border-warn/20 bg-warn-soft px-4 py-2.5 text-[13px] text-warn md:px-6">

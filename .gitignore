@@ -42,3 +42,6 @@ uploads/
 # hosting CLIs (contain project/org ids and local tokens)
 .vercel/
 .render/
+
+# TypeScript incremental build cache
+*.tsbuildinfo

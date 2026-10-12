@@ -207,3 +207,15 @@ async def test_all_models_overloaded_fails_honestly(keyed):
     respx.post(url__regex=rf"{GEM}/.*").mock(return_value=httpx.Response(503, json={"error": {"message": "high demand"}}))
     with pytest.raises(ProviderError, match="503"):
         await GeminiProvider(keyed).generate_json(system="s", prompt="p", out=Out, stats=CallStats())
+
+
+@respx.mock
+async def test_overloaded_model_cools_down_for_later_calls(keyed):
+    overloaded = httpx.Response(503, json={"error": {"message": "high demand"}})
+    a = respx.post(f"{GEM}/model-a:generateContent").mock(return_value=overloaded)
+    respx.post(f"{GEM}/model-b:generateContent").mock(return_value=gemini_ok('{"answer": "fb"}'))
+    p = GeminiProvider(keyed)
+    for _ in range(3):
+        await p.generate_json(system="s", prompt="p", out=Out, stats=CallStats())
+    assert a.call_count == 2  # one call + one retry, then skipped while cooling down
+    assert p.available_models() == ["model-b"]

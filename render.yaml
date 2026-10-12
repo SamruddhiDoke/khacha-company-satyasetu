@@ -41,3 +41,6 @@ services:
         value: "false"
       - key: MAX_CONCURRENT_CHECKS
         value: "2"
+      # Free instances have a small CPU share and Gemini latency varies; 180 s proved too short on the live preview.
+      - key: CHECK_TIMEOUT_S
+        value: "300"

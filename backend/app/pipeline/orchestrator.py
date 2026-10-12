@@ -6,7 +6,9 @@ specific error code - there is no fallback that fabricates a result."""
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import logging
+import time
 import uuid
 from datetime import datetime, timezone
 
@@ -59,9 +61,15 @@ def _safe_error(exc: BaseException | None) -> str:
     return "internal error"
 
 
+# Monotonic deadline of the running check (lets late stages degrade gracefully instead of being killed).
+_deadline: contextvars.ContextVar[float] = contextvars.ContextVar("check_deadline", default=float("inf"))
+EXPLANATION_RESERVE_S = 15.0  # time kept back for the template fallback and persisting the result
+
+
 async def run_verification(job_id: uuid.UUID) -> None:
     settings = get_settings()
     stats = CallStats()
+    _deadline.set(time.monotonic() + settings.check_timeout_s)
     try:
         await asyncio.wait_for(_run(job_id, stats), timeout=settings.check_timeout_s)
     except asyncio.TimeoutError:
@@ -296,7 +304,17 @@ async def _complete(job_id, claims, validated, what_changes, stats, language, ll
                                            quotes, mc, what_changes.get(i)))
         if claims:
             pubs = {lbl: (sources[url].publisher or sources[url].domain) for url, lbl in labels.items()}
-            explanation = await explain(llm, cfe, overall, {lbl: p for lbl, p in pubs.items()}, language, stats)
+            budget = _deadline.get() - time.monotonic() - EXPLANATION_RESERVE_S
+            try:
+                if budget <= 0:
+                    raise asyncio.TimeoutError
+                explanation = await asyncio.wait_for(
+                    explain(llm, cfe, overall, {lbl: p for lbl, p in pubs.items()}, language, stats), timeout=budget)
+            except asyncio.TimeoutError:
+                # The verdict is already decided by the rules; don't lose it because the wording step is slow.
+                from app.pipeline.explain import template_explanation
+                explanation = template_explanation(cfe, overall, pubs)
+                explanation["fallback_reason"] = "timeout"
         else:
             from app.pipeline.explain import template_explanation
             explanation = template_explanation([], overall, {})

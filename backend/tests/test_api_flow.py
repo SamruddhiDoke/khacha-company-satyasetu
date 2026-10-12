@@ -347,3 +347,23 @@ async def test_health_ready(client):
     assert (await client.get("/api/health")).json() == {"status": "ok"}
     r = await client.get("/api/ready")
     assert r.status_code == 200 and r.json()["checks"]["database"] == "ok"
+
+
+async def test_slow_explanation_keeps_rule_verdict(client, pages, settings, monkeypatch):
+    """Live preview regression: a slow explanation call must not discard an already-computed verdict."""
+    from app.pipeline import orchestrator as orch
+    monkeypatch.setattr(orch, "EXPLANATION_RESERVE_S", 0.5)
+    settings.check_timeout_s = 3.0
+
+    class SlowExplain(ScriptedLLM):
+        async def generate_json(self, *, system, prompt, out, stats):
+            if out.__name__ == "Explanation":
+                await asyncio.sleep(10)
+            return await super().generate_json(system=system, prompt=prompt, out=out, stats=stats)
+
+    use(SlowExplain(evaluate=stance_by_publisher({"example-ministry.gov.in": "refutes"})), [OFFICIAL])
+    conv = await new_conv(client)
+    msg = await send(client, conv, "Government gives Rs 50000 scholarship to all students.")
+    job = await wait_job(client, (await client.post(f"/api/messages/{msg['id']}/verifications", json={})).json()["id"])
+    assert job["status"] == "completed" and job["overall_verdict"] == "false"
+    assert job["explanation"]["source"] == "template" and job["explanation"]["fallback_reason"] == "timeout"

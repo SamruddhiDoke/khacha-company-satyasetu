@@ -94,6 +94,7 @@ def to_gemini_schema(model: type[BaseModel]) -> dict:
 # Gemini
 # ---------------------------------------------------------------------------
 GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta"
+OVERLOAD_COOLDOWN_S = 300  # skip a model this long after it timed out or kept returning 5xx
 
 
 class GeminiProvider:
@@ -110,6 +111,8 @@ class GeminiProvider:
         # model -> UTC instant when its daily quota resets. Exhausted models are skipped until then, so a
         # fallback call does not first spend a request and a rate-limit slot on a model that will refuse it.
         self._exhausted_until: dict[str, datetime] = {}
+        # model -> UTC instant until which it is skipped after persistent server errors (e.g. 503 high demand).
+        self._cooldown_until: dict[str, datetime] = {}
 
     def next_quota_reset(self, now: datetime | None = None) -> datetime:
         """Gemini RPD quotas reset at midnight Pacific time (configurable via GEMINI_QUOTA_RESET_TZ)."""
@@ -121,7 +124,9 @@ class GeminiProvider:
 
     def available_models(self, now: datetime | None = None) -> list[str]:
         now = now or datetime.now(timezone.utc)
-        return [m for m in self.models if self._exhausted_until.get(m, now) <= now]
+        ok = [m for m in self.models if self._exhausted_until.get(m, now) <= now]
+        cooled = [m for m in ok if self._cooldown_until.get(m, now) <= now]
+        return cooled or ok  # if every model is cooling down, still try them rather than fail outright
 
     async def check_model(self, model: str) -> tuple[bool, str]:
         """models.get is a metadata call - it consumes no generation quota."""
@@ -152,7 +157,12 @@ class GeminiProvider:
                 log.warning("gemini model %s daily quota exhausted; skipping it until %s UTC",
                             model, f"{self._exhausted_until[model]:%Y-%m-%d %H:%M}")
                 last_err = e
-            except (_ModelUnavailable, _ModelOverloaded, ProviderTimeout) as e:
+            except (_ModelOverloaded, ProviderTimeout) as e:
+                if model != models[-1]:
+                    self._cooldown_until[model] = datetime.now(timezone.utc) + timedelta(seconds=OVERLOAD_COOLDOWN_S)
+                log.warning("gemini model %s unavailable (%s); trying fallback if configured", model, e)
+                last_err = e
+            except _ModelUnavailable as e:
                 log.warning("gemini model %s unavailable (%s); trying fallback if configured", model, e)
                 last_err = e
         assert last_err is not None

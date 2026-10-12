@@ -54,6 +54,20 @@ export function _setSleepForTests(fn: (ms: number) => Promise<unknown>): void {
   sleep = fn as (ms: number) => Promise<void>;
 }
 
+// Render's free instance sleeps when idle, and requests arriving through the Vercel proxy get an immediate 502
+// without waking it (measured 2026-10-12). A direct request to the backend does wake it, so while a visitor is
+// waiting we send one fire-and-forget request straight to its health endpoint (at most once a minute).
+// VITE_WAKE_URL is set only for the hosted build; local builds never ping anything.
+const WAKE_URL: string = (import.meta.env.VITE_WAKE_URL as string | undefined) ?? "";
+let lastWake = 0;
+export function wakeBackend(now = Date.now()): boolean {
+  if (!WAKE_URL || now - lastWake < 60_000) return false;
+  lastWake = now;
+  // no-cors: we only need the request to arrive; the (opaque) response is not read.
+  fetch(WAKE_URL, { mode: "no-cors", cache: "no-store", credentials: "omit" }).catch(() => {});
+  return true;
+}
+
 // "unavailable": a non-JSON answer from the hosting layer (proxy error page, host "starting" page) - the request
 // never reached SatyaSetu, so even a POST can be resent safely. "network"/"timeout" are only retried for GETs,
 // because the server might have processed a write before the connection failed.
@@ -93,6 +107,7 @@ async function withRetry<T>(path: string, init: RequestInit): Promise<T> {
         }
         throw e;
       }
+      if (e instanceof ApiError && e.code === "unavailable") wakeBackend();
       if (!waitingToRetry) {
         waitingToRetry = true;
         retrying += 1;

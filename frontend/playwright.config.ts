@@ -6,7 +6,14 @@ export default defineConfig({
   timeout: 60_000,
   retries: 0,
   reporter: [["list"]],
-  use: { baseURL: process.env.BASE_URL ?? "http://localhost:8080", trace: "retain-on-failure" },
+  use: {
+    baseURL: process.env.BASE_URL ?? "http://localhost:8080",
+    trace: "retain-on-failure",
+    // For protected Vercel previews: pass the project's automation-bypass secret via env (never commit it).
+    extraHTTPHeaders: process.env.VERCEL_BYPASS
+      ? { "x-vercel-protection-bypass": process.env.VERCEL_BYPASS, "x-vercel-set-bypass-cookie": "true" }
+      : undefined,
+  },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1280, height: 800 } } },
     { name: "tablet", use: { ...devices["Desktop Chrome"], viewport: { width: 768, height: 1024 } } },

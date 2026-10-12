@@ -28,7 +28,29 @@ export class ApiError extends Error {
   }
 }
 
+// The backend creates an anonymous session (HttpOnly cookie) on the first request that has none. If several
+// requests are sent before any cookie exists, each creates its own session and the browser keeps whichever
+// cookie arrives last - so data created under one session becomes invisible (404) to the next request.
+// The first request therefore establishes the session and every other request waits for it.
+let sessionReady: Promise<unknown> | null = null;
+
+export function resetSessionGate(): void {
+  sessionReady = null; // test hook
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  if (sessionReady === null) {
+    const first = rawRequest<T>(path, init);
+    sessionReady = first.catch(() => {
+      sessionReady = null; // failed before a session existed: let the next request try again
+    });
+    return first;
+  }
+  await sessionReady;
+  return rawRequest<T>(path, init);
+}
+
+async function rawRequest<T>(path: string, init: RequestInit): Promise<T> {
   let res: Response;
   try {
     res = await fetch(path, {

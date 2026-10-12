@@ -152,7 +152,7 @@ class GeminiProvider:
                 log.warning("gemini model %s daily quota exhausted; skipping it until %s UTC",
                             model, f"{self._exhausted_until[model]:%Y-%m-%d %H:%M}")
                 last_err = e
-            except (_ModelUnavailable, ProviderTimeout) as e:
+            except (_ModelUnavailable, _ModelOverloaded, ProviderTimeout) as e:
                 log.warning("gemini model %s unavailable (%s); trying fallback if configured", model, e)
                 last_err = e
         assert last_err is not None
@@ -239,11 +239,20 @@ class GeminiProvider:
             if r.status_code >= 500 and attempt + 1 < attempts:
                 await asyncio.sleep(2)
                 continue
-            raise ProviderError(f"Gemini error HTTP {r.status_code}: {msg}", provider="gemini", retryable=r.status_code >= 500)
+            if r.status_code >= 500:
+                # e.g. 503 "model is currently experiencing high demand": let generate_json try the fallback model
+                raise _ModelOverloaded(f"Gemini error HTTP {r.status_code}: {msg}", provider="gemini", retryable=True)
+            raise ProviderError(f"Gemini error HTTP {r.status_code}: {msg}", provider="gemini")
         raise ProviderError("Gemini request failed", provider="gemini", retryable=True)
 
 
 class _ModelUnavailable(ProviderError):
+    code = "provider_error"
+
+
+class _ModelOverloaded(ProviderError):
+    """Server-side failure (5xx) that persisted after one retry; the fallback model may still work."""
+
     code = "provider_error"
 
 

@@ -7,6 +7,9 @@ test.skip(!process.env.LIVE, "set LIVE=1 to run against real providers");
 test("live: one unseen claim through the real UI", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop", "run once");
   test.setTimeout(240_000);
+  const consoleErrors: string[] = [];
+  page.on("console", (m) => m.type() === "error" && consoleErrors.push(m.text()));
+  page.on("pageerror", (e) => consoleErrors.push(String(e)));
   const claim = process.env.CLAIM ?? "The Statue of Unity in Gujarat, which depicts Sardar Vallabhbhai Patel, is 182 metres tall.";
   await page.goto("/");
   await page.getByLabel("Message").fill(claim);
@@ -26,4 +29,5 @@ test("live: one unseen claim through the real UI", async ({ page }, info) => {
   }
   await page.screenshot({ path: "test-results/screens/live-report.png", fullPage: false });
   console.log("JOB", job.id, detail.status, detail.overall_verdict, detail.error_code);
+  console.log("CONSOLE_ERRORS", JSON.stringify(consoleErrors));
 });

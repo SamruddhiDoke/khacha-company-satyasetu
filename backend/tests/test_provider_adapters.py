@@ -6,7 +6,7 @@ import respx
 from pydantic import BaseModel, SecretStr
 
 from app.pipeline.llm_io import ClaimExtraction
-from app.providers.errors import ContentBlocked, InvalidModelOutput, ProviderNotConfigured, QuotaExhausted
+from app.providers.errors import ContentBlocked, InvalidModelOutput, ProviderError, ProviderNotConfigured, QuotaExhausted
 from app.providers.llm import CallStats, GeminiProvider, to_gemini_schema
 from app.providers.search import TavilySearch
 
@@ -190,3 +190,20 @@ async def test_local_budget_does_not_mark_model_exhausted(keyed):
     with pytest.raises(QuotaExhausted):
         await p.generate_json(system="s", prompt="p", out=Out, stats=CallStats())
     assert p._exhausted_until == {}
+
+
+@respx.mock
+async def test_overloaded_model_falls_back_after_one_retry(keyed):
+    overloaded = httpx.Response(503, json={"error": {"message": "This model is currently experiencing high demand."}})
+    a = respx.post(f"{GEM}/model-a:generateContent").mock(return_value=overloaded)
+    respx.post(f"{GEM}/model-b:generateContent").mock(return_value=gemini_ok('{"answer": "fb"}'))
+    stats = CallStats()
+    out = await GeminiProvider(keyed).generate_json(system="s", prompt="p", out=Out, stats=stats)
+    assert out.answer == "fb" and a.call_count == 2 and stats.models == ["model-b"]
+
+
+@respx.mock
+async def test_all_models_overloaded_fails_honestly(keyed):
+    respx.post(url__regex=rf"{GEM}/.*").mock(return_value=httpx.Response(503, json={"error": {"message": "high demand"}}))
+    with pytest.raises(ProviderError, match="503"):
+        await GeminiProvider(keyed).generate_json(system="s", prompt="p", out=Out, stats=CallStats())

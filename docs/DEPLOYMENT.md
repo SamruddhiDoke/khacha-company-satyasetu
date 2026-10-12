@@ -1,5 +1,12 @@
 # Deployment (free tiers)
 
+**Live demo:** https://satyasetu-hack.vercel.app (Vercel production alias, public; previews stay behind Vercel Authentication)
+**Backend:** https://satyasetu-api.onrender.com (`/api/health`, `/api/ready`)
+
+Quota protection for the public demo (backend, database-backed so restarts and cleared cookies don't reset it):
+30 fact-checks per hour across all visitors, 15 per visitor session per day, 6 uploads per minute per session,
+plus the provider budgets (Gemini 200 requests/day, Tavily 40 searches/day and 900/month).
+
 ```
 Browser ──HTTPS──► Vercel (static React build)
                      └─ /api/* rewrite (same origin, first-party cookie, no CORS)

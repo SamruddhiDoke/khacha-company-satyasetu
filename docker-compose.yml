@@ -20,6 +20,8 @@ services:
   backend:
     build:
       context: ./backend
+      args:
+        INSTALL_DEV: "true"   # local image also runs the test suite
     env_file:
       - path: .env
         required: false

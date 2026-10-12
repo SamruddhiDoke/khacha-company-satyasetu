@@ -4,8 +4,9 @@ Secrets (API keys) are only ever read here, on the server. They are never
 returned by any endpoint, logged, or stored in the database.
 """
 from functools import lru_cache
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -61,6 +62,26 @@ class Settings(BaseSettings):
 
     # --- Retention ---
     retention_days: int = 30
+
+    @field_validator("database_url")
+    @classmethod
+    def _normalize_db_url(cls, v: str) -> str:
+        """Accept the URL forms hosted Postgres providers hand out (postgres://..., ?sslmode=require,
+        &channel_binding=...) and convert them to what SQLAlchemy's asyncpg driver expects."""
+        parts = urlsplit(v.strip())
+        scheme = parts.scheme
+        if scheme in ("postgres", "postgresql"):
+            scheme = "postgresql+asyncpg"
+        query = []
+        for k, val in parse_qsl(parts.query, keep_blank_values=True):
+            if k == "sslmode":
+                if val in ("require", "verify-ca", "verify-full"):
+                    query.append(("ssl", "require"))
+            elif k == "channel_binding":
+                continue  # not supported by asyncpg; TLS is still enforced via ssl=require
+            else:
+                query.append((k, val))
+        return urlunsplit((scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
 
     @property
     def gemini_configured(self) -> bool:

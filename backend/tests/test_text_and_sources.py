@@ -62,3 +62,12 @@ def test_academic_domains_are_not_official_by_suffix():
     assert classify("https://ocw.mit.edu/courses/x") == "other"
     assert classify("https://nta.ac.in/notice") == "official"  # explicitly listed institution
     assert classify("https://www.mohfw.gov.in/") == "official"
+
+
+def test_hosted_database_urls_are_normalized_for_asyncpg():
+    from app.config import Settings
+    s = Settings(database_url="postgresql://u:p@ep-x.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
+    assert s.database_url == "postgresql+asyncpg://u:p@ep-x.ap-southeast-1.aws.neon.tech/neondb?ssl=require"
+    assert Settings(database_url="postgres://u:p@h:5432/db").database_url == "postgresql+asyncpg://u:p@h:5432/db"
+    local = "postgresql+asyncpg://satyasetu:x@db:5432/satyasetu"
+    assert Settings(database_url=local).database_url == local

@@ -1,0 +1,43 @@
+# Render Blueprint for the SatyaSetu API (FastAPI, Docker). Create it from the Render dashboard:
+# New > Blueprint > select this repo. Secrets marked `sync: false` are entered in the dashboard at creation
+# and are never stored in this file.
+services:
+  - type: web
+    name: satyasetu-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    buildFilter:
+      paths:
+        - backend/**
+    envVars:
+      - key: DATABASE_URL        # managed Postgres URL (e.g. Neon); sslmode=require is supported
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TAVILY_API_KEY
+        sync: false
+      - key: COOKIE_SECURE       # session cookie only over HTTPS
+        value: "true"
+      - key: DATA_DIR
+        value: /data
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: GEMINI_FALLBACK_MODEL
+        value: gemini-3.5-flash-lite
+      - key: GEMINI_THINKING_LEVEL
+        value: low
+      - key: TAVILY_MAX_SEARCHES_PER_DAY
+        value: "40"
+      - key: TAVILY_MAX_SEARCHES_PER_MONTH
+        value: "900"
+      # Whisper "base" peaks at ~514 MB (measured), more than a free instance can hold alongside the API.
+      # Audio upload is therefore disabled on the free plan and reported as unavailable by /api/capabilities.
+      - key: WHISPER_ENABLED
+        value: "false"
+      - key: MAX_CONCURRENT_CHECKS
+        value: "2"

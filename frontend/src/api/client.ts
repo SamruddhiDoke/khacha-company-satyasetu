@@ -33,11 +33,20 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     res = await fetch(path, {
       credentials: "same-origin",
+      // Generous: a sleeping free-tier backend can take about a minute to wake, and uploads are processed inline.
+      signal: AbortSignal.timeout(init.body instanceof FormData ? 300_000 : 130_000),
       ...init,
       headers: init.body instanceof FormData ? init.headers : { "Content-Type": "application/json", ...init.headers },
     });
-  } catch {
-    throw new ApiError(0, "network", "Cannot reach the SatyaSetu server. Is it running?");
+  } catch (e) {
+    if (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError")) {
+      throw new ApiError(0, "timeout", "The server took too long to respond. It may be waking up - please try again.");
+    }
+    throw new ApiError(0, "network", "Cannot reach the SatyaSetu server. Check your connection and try again.");
+  }
+  const isJson = (res.headers.get("content-type") ?? "").includes("application/json");
+  if (!isJson && (res.status === 502 || res.status === 503 || res.status === 504)) {
+    throw new ApiError(res.status, "unavailable", "The SatyaSetu server is unavailable or starting up. Please try again shortly.");
   }
   if (res.status === 204) return undefined as T;
   const body = await res.json().catch(() => null);

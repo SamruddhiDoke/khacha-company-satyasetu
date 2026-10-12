@@ -39,5 +39,21 @@ The frontend needs no environment variables: it calls relative `/api` URLs.
 - Backend: `git push` to `main`. Render rebuilds automatically when files under `backend/` change (`autoDeployTrigger: commit`, `buildFilter`). Migrations run on start (`alembic upgrade head`).
 - Frontend: from `frontend/`, `vercel deploy` (preview) then `vercel deploy --prod`. If the Vercel project is connected to the GitHub repo, pushes deploy automatically (preview for branches, production for `main`).
 
+## Cold starts (Render Free) and the 2026-10-12 incident
+
+Render's free instance sleeps after 15 min without traffic. Measured: while it wakes, the Vercel `/api` proxy
+answers **immediately with an HTML 502 page** (0.5 s), and the backend becomes healthy again after ~45-60 s.
+Before `496da87` the frontend treated that 502 as a final error ("server unavailable") and never retried, so the
+site looked broken until a manual reload after the backend had woken.
+
+Now (frontend `496da87`, `f2033ab`):
+- any non-JSON `/api` response is treated as "server not ready", never as data;
+- requests are retried with backoff for up to ~150 s; writes are resent only when the response proves the
+  request never reached the app (so no duplicate messages); the backend also de-duplicates Verify clicks;
+- a "Waking up the server" banner is shown while a request is slow (>4 s) or being retried;
+- if the live progress stream (SSE) fails, the job is polled until it finishes (bounded), plus a 30 s watchdog.
+
+Expect the first visit after an idle period to take about a minute. No keep-alive pinging is used.
+
 ## Data separation
 The hosted database starts empty. Local conversations, uploads and evaluation records are never copied to it.

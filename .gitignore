@@ -45,3 +45,6 @@ uploads/
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+# Claude Code: personal (per-developer) settings are never shared
+.claude/settings.local.json
